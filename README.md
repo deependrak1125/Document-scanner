@@ -100,3 +100,4 @@ npx expo export --platform android --output-dir dist-android
 
 OpenAPI is served at `/openapi.json`; the source is `services/api/src/openapi.json`. Environment examples are in `.env.example`. Signing keys, provider credentials, and customer documents do not belong in the repository.
 # document-scanner
+# Document-scanner
