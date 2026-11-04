@@ -1,0 +1,19 @@
+<lint-module
+    format="1"
+    dir="/Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android"
+    name=":folio-image"
+    type="LIBRARY"
+    maven="expo.modules.folioimage:folio-image:0.1.0"
+    agpVersion="9.2.1"
+    buildFolder="build"
+    bootClassPath="/Users/deependrakumar/Library/Android/sdk/platforms/android-37.0/android.jar:/Users/deependrakumar/Library/Android/sdk/build-tools/36.0.0/core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-37.0"
+    neverShrinking="true"
+    highlightGradualR8Api="false">
+  <lintOptions
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

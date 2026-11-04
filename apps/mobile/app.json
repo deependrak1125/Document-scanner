@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "Folio",
+    "slug": "folio-scanner",
+    "scheme": "folio",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "app.folio.scanner",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Unlock your private Folio documents.",
+        "UIFileSharingEnabled": false
+      }
+    },
+    "android": {
+      "package": "app.folio.scanner",
+      "permissions": ["CAMERA"],
+      "allowBackup": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      "expo-local-authentication",
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Use your camera to scan documents privately on this device."
+        }
+      ],
+      [
+        "rn-mlkit-ocr",
+        {
+          "ocrModels": ["latin", "devanagari"],
+          "ocrUseBundled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose images to turn into documents.",
+          "cameraPermission": "Capture documents.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

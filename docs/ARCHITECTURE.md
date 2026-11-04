@@ -1,0 +1,17 @@
+# Architecture and recovery
+
+The mobile app is the owner of local originals. Authentication is an optional service boundary, never a prerequisite for scanning. SQLite stores JSON document records alongside indexed searchable fields and a per-document outbox. File writes occur before metadata is published: copy sources, write a temporary PDF, rename it, then commit metadata/outbox. On an ordinary write error the newly allocated directory is removed. A process crash between file rename and metadata commit can leave an orphan directory; orphan garbage collection remains a release task. Existing valid document files are never deleted by sync failure.
+
+Edits create new PDF copies. Camera/image manipulation uses native files rather than passing full camera frames as base64 over a bridge. Image processing releases OpenCV buffers and runs asynchronously; pages are rasterized individually for OCR. PDF construction still uses in-memory JavaScript buffers and therefore enforces practical import/page limits. A streaming/native PDF writer is a future requirement for very large documents.
+
+Native document scanner UI is the primary automatic workflow. Manual Vision Camera capture is separate and works without a downloaded scanner component. OpenCV/Vision post-capture detection and manual corners feed native perspective transforms. Native SDK crop output is the saved source for SDK scans; only manual-camera capture preserves uncropped raw content.
+
+Zustand holds UI preferences/draft session state. Preferences persist through SQLite. SecureStore holds refresh credentials. App-lock presentation overlays the navigator so returning camera/file-picker operations do not target an unmounted navigation tree. A transient system permission dialog alone does not request another unlock; backgrounding does.
+
+Sync is explicitly opt-in. A single foreground worker tracks connection state and exponentially backs off, stops on account changes, never uploads ID scans, binds previously synced files to their original cloud account, and uses optimistic server revisions. Acknowledgements atomically preserve edits made during transfers. Remote conflicts are retained rather than overwritten silently. Original image/page metadata and folders currently remain device-local.
+
+The backend separates configuration, Mongo models, session security, storage, providers, maintenance jobs, PDF processing and route composition. Mongo transactions protect quota reservations, refresh rotations, sync idempotency and admin mutations. Files use S3; short-lived signed upload URLs target staging objects, never the verified object currently associated with a document. Validation checks size, MIME and PDF magic; it is not malware sanitization. Conditional copy pins the validated ETag before metadata publication.
+
+Account deletion is a retryable BullMQ job. An account is made inaccessible before its object prefix and database records are removed. Subscription expiry maintenance reduces quota without deleting over-quota documents. Store lifecycle notifications and distributed rate limiting are not yet complete.
+
+Admin sessions use in-memory access tokens and expire promptly. Charts and counts are API-derived, with no embedded demo metrics. Document content is intentionally absent. Secrets, document titles, OCR text, passwords, signed URLs and purchase tokens must not enter logs; current HTTP serializers include only request IDs, normalized paths/methods and response status.

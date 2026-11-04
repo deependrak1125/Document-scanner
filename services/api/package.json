@@ -1,0 +1,41 @@
+{
+  "name": "@folio/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "admin": "tsx --env-file=../../.env src/admin-cli.ts",
+    "seed:admin": "tsx --env-file=../../.env src/seed-admin.ts"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
+    "@aws-sdk/client-s3": "^3.900.0",
+    "@aws-sdk/s3-request-presigner": "^3.900.0",
+    "@folio/shared-types": "*",
+    "@folio/validation": "*",
+    "argon2": "^0.44.0",
+    "bullmq": "^5.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.0",
+    "google-auth-library": "^10.0.0",
+    "helmet": "^8.0.0",
+    "ioredis": "^5.0.0",
+    "jsonwebtoken": "^9.0.0",
+    "mongoose": "^8.18.0",
+    "pino": "^9.0.0",
+    "pino-http": "^10.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.0",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.20.0"
+  }
+}

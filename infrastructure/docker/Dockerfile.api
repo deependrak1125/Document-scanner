@@ -1,0 +1,18 @@
+FROM node:24-bookworm-slim AS build
+WORKDIR /app
+COPY package*.json tsconfig.base.json ./
+COPY services/api services/api
+COPY packages packages
+COPY apps/admin/package.json apps/admin/package.json
+COPY apps/mobile/package.json apps/mobile/package.json
+RUN npm ci --ignore-scripts
+RUN npm run build -w @folio/api
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends qpdf poppler-utils ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/services/api/dist ./dist
+USER node
+EXPOSE 4000
+CMD ["node", "dist/index.js"]

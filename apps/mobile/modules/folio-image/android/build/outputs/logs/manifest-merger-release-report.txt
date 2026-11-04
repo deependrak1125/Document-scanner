@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml:2:13-83
+INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml:2:13-83
+	package
+		INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml
+	xmlns:android
+		ADDED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml:2:23-81
+uses-sdk
+INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml reason: use-sdk injection requested
+INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml
+INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml
+	android:targetSdkVersion
+		INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml
+	android:minSdkVersion
+		INJECTED from /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest6614029953207954057.xml

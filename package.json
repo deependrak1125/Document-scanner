@@ -1,0 +1,34 @@
+{
+  "name": "folio-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @folio/api",
+    "dev:admin": "npm run dev -w @folio/admin",
+    "dev:mobile": "npm run start -w @folio/mobile",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "npm run build -w @folio/api && npm run build -w @folio/admin",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "format": "prettier --write \"{apps,services,packages,tests}/**/*.{ts,tsx,css,json}\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.0",
+    "eslint": "^10.14.0",
+    "typescript-eslint": "^8.72.1",
+    "@eslint/js": "^10.0.1",
+    "supertest": "^7.0.0",
+    "@types/supertest": "^6.0.0",
+    "mongodb-memory-server": "^10.0.0",
+    "prettier": "^3.0.0"
+  },
+  "type": "module"
+}

@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": ["FolioImageModule"] },
+  "android": { "modules": ["expo.modules.folioimage.FolioImageModule"] }
+}

@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.expo/
+.env
+.env.*.local
+coverage/
+apps/mobile/android/
+apps/mobile/ios/
+*.jks
+*.keystore
+.DS_Store
+
+**/dist-android/
+**/dist-ios/

@@ -1,0 +1,9 @@
+expo.modules.folioimage.folio-image-pngs-0 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/generated/res/pngs/release
+expo.modules.folioimage.folio-image-updated_navigation_xml-1 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/generated/updated_navigation_xml/release
+expo.modules.folioimage.folio-image-mergeReleaseResources-2 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+expo.modules.folioimage.folio-image-mergeReleaseResources-3 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+expo.modules.folioimage.folio-image-release-4 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/merged_res/release/mergeReleaseResources
+expo.modules.folioimage.folio-image-release-5 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/build/intermediates/packaged_res/release/packageReleaseResources
+expo.modules.folioimage.folio-image-main-6 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/src/main/res
+expo.modules.folioimage.folio-image-release-7 /Users/deependrakumar/Downloads/Document scanner/apps/mobile/modules/folio-image/android/src/release/res
+gradleHome-0 /Users/deependrakumar/.gradle
