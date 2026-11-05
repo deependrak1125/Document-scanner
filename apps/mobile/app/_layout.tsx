@@ -1,8 +1,15 @@
+import { IconBadge, SectionHeading } from "../components/experience";
 import { useAutoSync } from "../hooks/useAutoSync";
 import { refresh } from "../features/auth";
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
-import { AppState, View, Modal } from "react-native";
+import {
+  AppState,
+  View,
+  Modal,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -38,34 +45,66 @@ function AppRoot() {
     return () => sub.remove();
   }, []);
   if (!settings.ready)
-    return <View style={{ flex: 1, backgroundColor: t.bg }} />;
-  if (welcome)
     return (
-      <SafeAreaView
+      <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          padding: 30,
-          gap: 24,
           backgroundColor: t.bg,
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 16,
         }}
       >
-        <Label size={48}>Folio.</Label>
-        <Label size={28}>Less paper. More possibility.</Label>
-        <Label muted>
-          Scan, organize, and carry your documents. Scans stay on your device
-          unless you choose cloud backup. ID cards always stay local.
-        </Label>
-        <Label muted>
-          Camera access is requested when you scan. No account is needed.
-        </Label>
-        <Button
-          title="Continue without an account"
-          onPress={async () => {
-            await setSetting("onboarded", true);
-            setWelcome(false);
+        <ActivityIndicator size="large" color={t.primary} />
+        <Label muted>Opening your workspace…</Label>
+      </View>
+    );
+  if (welcome)
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <StatusBar style={t.dark ? "light" : "dark"} />
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            padding: 28,
+            gap: 20,
+            maxWidth: 620,
+            width: "100%",
+            alignSelf: "center",
           }}
-        />
+        >
+          <IconBadge icon="scan-outline" large />
+          <Label size={40}>Folio.</Label>
+          <Label size={28}>Less paper. More possibility.</Label>
+          <Label muted>
+            Scan, organize, and carry your documents. Scans stay on your device
+            unless you choose cloud backup. ID cards always stay local.
+          </Label>
+          <SectionHeading
+            title="Scan in seconds"
+            icon="camera-outline"
+            subtitle="Capture a page, receipt or ID"
+          />
+          <SectionHeading
+            title="Make it yours"
+            icon="color-filter-outline"
+            subtitle="Clean up, sign and export"
+          />
+          <SectionHeading
+            title="Private by default"
+            icon="shield-checkmark-outline"
+            subtitle="No account needed to start"
+          />
+          <Button
+            title="Start using Folio"
+            icon="arrow-forward-outline"
+            onPress={async () => {
+              await setSetting("onboarded", true);
+              setWelcome(false);
+            }}
+          />
+        </ScrollView>
       </SafeAreaView>
     );
   return (
@@ -77,6 +116,8 @@ function AppRoot() {
           headerTintColor: t.text,
           contentStyle: { backgroundColor: t.bg },
           headerShadowVisible: false,
+          headerTitleStyle: { fontSize: 18, fontWeight: "600" },
+          headerBackTitle: "Back",
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -84,6 +125,10 @@ function AppRoot() {
           name="subscription"
           options={{ title: "Folio Premium" }}
         />
+        <Stack.Screen name="office" options={{ title: "Office to PDF" }} />
+        <Stack.Screen name="forms" options={{ title: "PDF forms" }} />
+        <Stack.Screen name="compare" options={{ title: "Compare PDFs" }} />
+        <Stack.Screen name="merge" options={{ title: "Merge PDFs" }} />
         <Stack.Screen name="camera" options={{ title: "Manual scanner" }} />
         <Stack.Screen name="editor" options={{ title: "Review your scan" }} />
         <Stack.Screen name="document/[id]" options={{ title: "Document" }} />
@@ -103,7 +148,9 @@ function AppRoot() {
               backgroundColor: t.bg,
             }}
           >
-            <Label size={30}>Your documents, protected.</Label>
+            <IconBadge icon="finger-print-outline" large />
+            <Label size={28}>Welcome back.</Label>
+            <Label muted>Unlock to access your private documents.</Label>
             <Button
               title="Unlock Folio"
               icon="lock-open-outline"

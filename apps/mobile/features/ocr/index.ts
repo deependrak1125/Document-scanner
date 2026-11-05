@@ -5,7 +5,10 @@ export async function recognize(
   language: "latin" | "devanagari" = "latin",
 ): Promise<ScanPage> {
   const result = await MlkitOcr.recognizeText(page.uri, language);
-  if (!result || typeof result.text !== "string") throw new Error("Text recognition returned an invalid result. Reopen the app and try again.");
+  if (!result || typeof result.text !== "string")
+    throw new Error(
+      "Text recognition returned an invalid result. Reopen the app and try again.",
+    );
   return {
     ...page,
     text: result.text,

@@ -329,3 +329,52 @@ describe("authenticated API integration", () => {
     ).toBe(503);
   });
 });
+
+it("protects Office conversion with authentication, per-file consent and an enable flag", async () => {
+  const previous = process.env.OFFICE_CONVERSION_ENABLED;
+  try {
+    process.env.OFFICE_CONVERSION_ENABLED = "true";
+    expect(
+      (
+        await request(app)
+          .post("/api/v1/office/convert")
+          .set("Content-Type", "application/octet-stream")
+          .send(Buffer.from("PKtest"))
+      ).status,
+    ).toBe(401);
+    const account = await register("office-tests@example.com");
+    expect(
+      (
+        await request(app)
+          .post("/api/v1/office/convert")
+          .set(auth(account.accessToken))
+          .set("Content-Type", "application/octet-stream")
+          .send(Buffer.from("PKtest"))
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(app)
+          .post("/api/v1/office/convert")
+          .set(auth(account.accessToken))
+          .set("X-Folio-Consent", "upload-for-processing")
+          .set("X-Folio-Format", "exe")
+          .set("Content-Type", "application/octet-stream")
+          .send(Buffer.from("PKtest"))
+      ).status,
+    ).toBe(400);
+    process.env.OFFICE_CONVERSION_ENABLED = "false";
+    expect(
+      (
+        await request(app)
+          .post("/api/v1/office/convert")
+          .set(auth(account.accessToken))
+          .set("Content-Type", "application/octet-stream")
+          .send(Buffer.from("PKtest"))
+      ).status,
+    ).toBe(503);
+  } finally {
+    if (previous === undefined) delete process.env.OFFICE_CONVERSION_ENABLED;
+    else process.env.OFFICE_CONVERSION_ENABLED = previous;
+  }
+});

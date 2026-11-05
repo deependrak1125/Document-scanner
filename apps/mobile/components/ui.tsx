@@ -15,14 +15,17 @@ export function Label({
   children,
   muted = false,
   size = 16,
+  numberOfLines,
 }: {
   children: React.ReactNode;
   muted?: boolean;
   size?: number;
+  numberOfLines?: number;
 }) {
   const t = useTheme();
   return (
     <Text
+      numberOfLines={numberOfLines}
       style={{
         color: muted ? t.muted : t.text,
         fontSize: size,
@@ -180,44 +183,103 @@ export function Field({
   multiline?: boolean;
 }) {
   const t = useTheme();
+  const [focused, setFocused] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const search = placeholder.toLowerCase().includes("search");
+  const email = placeholder.toLowerCase().includes("email");
   return (
-    <TextInput
-      accessibilityLabel={placeholder}
-      placeholder={placeholder}
-      placeholderTextColor={t.muted}
-      keyboardType={
-        placeholder.toLowerCase().includes("email")
-          ? "email-address"
-          : "default"
-      }
-      autoCorrect={
-        !secureTextEntry && !placeholder.toLowerCase().includes("email")
-      }
-      value={value}
-      onChangeText={onChangeText}
-      secureTextEntry={secureTextEntry}
-      multiline={multiline}
-      autoCapitalize={
-        secureTextEntry || placeholder.toLowerCase().includes("email")
-          ? "none"
-          : "sentences"
-      }
-      style={{
-        backgroundColor: t.surface,
-        borderColor: t.line,
-        borderWidth: 1,
-        borderRadius: 16,
-        padding: 14,
-        minHeight: 50,
-        color: t.text,
-        fontSize: 16,
-      }}
-    />
+    <View style={{ gap: 7 }}>
+      {!search && (
+        <Text style={{ color: t.muted, fontSize: 12, fontWeight: "600" }}>
+          {placeholder}
+        </Text>
+      )}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: multiline ? "flex-start" : "center",
+          backgroundColor: t.surface,
+          borderColor: focused ? t.primary : t.line,
+          borderWidth: 1,
+          borderRadius: 14,
+          paddingHorizontal: 14,
+        }}
+      >
+        {(search || email || secureTextEntry) && (
+          <Ionicons
+            name={
+              search
+                ? "search-outline"
+                : email
+                  ? "mail-outline"
+                  : "lock-closed-outline"
+            }
+            size={20}
+            color={focused ? t.primary : t.muted}
+          />
+        )}
+        <TextInput
+          accessibilityLabel={placeholder}
+          placeholder={search ? placeholder : ""}
+          placeholderTextColor={t.muted}
+          keyboardType={email ? "email-address" : "default"}
+          autoCorrect={!secureTextEntry && !email && !search}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          secureTextEntry={secureTextEntry && !revealed}
+          multiline={multiline}
+          autoCapitalize={secureTextEntry || email ? "none" : "sentences"}
+          style={{
+            flex: 1,
+            padding: 12,
+            paddingHorizontal: search || email || secureTextEntry ? 10 : 0,
+            minHeight: multiline ? 112 : 50,
+            color: t.text,
+            fontSize: 15,
+            textAlignVertical: multiline ? "top" : "center",
+          }}
+        />
+        {secureTextEntry && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? "Hide password" : "Show password"}
+            onPress={() => setRevealed(!revealed)}
+            style={{ padding: 12 }}
+          >
+            <Ionicons
+              name={revealed ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={t.muted}
+            />
+          </Pressable>
+        )}
+        {search && !!value && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+            onPress={() => onChangeText("")}
+            style={{ padding: 12 }}
+          >
+            <Ionicons name="close-circle" size={20} color={t.muted} />
+          </Pressable>
+        )}
+      </View>
+    </View>
   );
 }
+
 export const layout = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 22, gap: 18, paddingBottom: 40 },
+  content: {
+    padding: 20,
+    gap: 18,
+    paddingBottom: 32,
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center",
+  },
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   heading: { fontSize: 30, fontWeight: "800", letterSpacing: -1 },

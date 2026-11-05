@@ -49,3 +49,7 @@ Every `/admin/*` route requires a currently active admin user/session. Overview,
 - `X-Folio-Options: {"operation":"compress"}` (a JSON string)
 
 Operations: `compress`, `encrypt`, `decrypt`, `text`, `image`. Encryption/decryption additionally require `password`; image uses one-based `page`. Output is PDF, UTF-8 TXT or PNG respectively. Text extraction reads existing text, not OCR. Password-protected PDFs are shared directly after encryption because the local `pdf-lib` metadata importer cannot reopen encrypted PDFs.
+
+## Office to PDF
+
+`POST /office/convert` requires authentication, raw `application/octet-stream` bytes (30 MB maximum), `X-Folio-Consent: upload-for-processing`, and `X-Folio-Format: docx|xlsx|pptx`. It returns a PDF. One worker runs at a time with a 90-second timeout, isolated temporary profile, disabled macros/link updates, and cleanup after processing. Set `OFFICE_CONVERSION_ENABLED=true` and install LibreOffice; `LIBREOFFICE_BIN` defaults to `soffice`. The API Docker image includes Writer, Calc, Impress and fonts. Deploy document conversion with network/filesystem isolation appropriate for untrusted uploads. This is Office-to-PDF only, not PDF-to-Office reconstruction. Font substitution/pagination can differ from Microsoft Office.

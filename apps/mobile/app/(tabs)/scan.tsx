@@ -39,7 +39,7 @@ export default function Scan() {
       >
         <PageHeading
           eyebrow="Capture something useful"
-          title="From paper to pocket."
+          title="Scan a document"
           subtitle="A sharp PDF in just a few taps."
         />
         <View style={layout.row}>

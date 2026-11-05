@@ -1,3 +1,4 @@
+import { IconBadge, PageHeading, Notice } from "../components/experience";
 import { useTheme } from "../theme";
 import { Screen } from "../components/Screen";
 import { useState, useCallback, useEffect } from "react";
@@ -50,12 +51,17 @@ function ManualCameraContent() {
   if (!permission.hasPermission)
     return (
       <View style={layout.content}>
-        <Label size={24}>Camera access, only when you need it.</Label>
+        <IconBadge icon="camera-outline" large />
+        <PageHeading
+          title="Ready when you are"
+          subtitle="Allow camera access to scan a page."
+        />
         <Label muted>
           Capture stays on this device. You can also import a file without
           camera permission.
         </Label>
         <Button
+          icon="camera-outline"
           title={
             permission.canRequestPermission
               ? "Allow camera"
@@ -77,21 +83,37 @@ function ManualCameraContent() {
     );
   return (
     <View style={{ flex: 1, backgroundColor: "#111f24" }}>
-      <Camera
-        style={{ flex: 1 }}
-        device={device}
-        outputs={[output]}
-        isActive={focused && foreground}
-        onStarted={() => setReady(true)}
-        onStopped={() => setReady(false)}
-        onError={(e) => setError(String(e))}
-        enableNativeZoomGesture
-        enableNativeTapToFocusGesture
-      />
-      <View style={{ padding: 22, gap: 14, backgroundColor: theme.surface }}>
+      <View style={{ flex: 1 }}>
+        <Camera
+          style={{ flex: 1 }}
+          device={device}
+          outputs={[output]}
+          isActive={focused && foreground}
+          onStarted={() => setReady(true)}
+          onStopped={() => setReady(false)}
+          onError={(e) => setError(String(e))}
+          enableNativeZoomGesture
+          enableNativeTapToFocusGesture
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: "12%",
+            left: "8%",
+            right: "8%",
+            bottom: "12%",
+            borderWidth: 1.5,
+            borderColor: "#ffffffaa",
+            borderRadius: 18,
+          }}
+        />
+      </View>
+      <View style={{ padding: 20, gap: 12, backgroundColor: theme.surface }}>
         <Label>{pages.length} pages captured · Manual camera</Label>
-        {error && <Label>{error}</Label>}
+        {error && <Notice error message={error} />}
         <Button
+          icon={flash ? "flash" : "flash-off-outline"}
           title={flash ? "Flash on" : "Flash off"}
           secondary
           onPress={() => setFlash(!flash)}
@@ -114,7 +136,8 @@ function ManualCameraContent() {
           }}
         />
         <Button
-          title="Review & crop pages"
+          title={`Review ${pages.length} ${pages.length === 1 ? "page" : "pages"}`}
+          icon="checkmark-circle-outline"
           secondary
           disabled={!pages.length}
           onPress={() => router.replace("/editor")}

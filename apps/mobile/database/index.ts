@@ -109,10 +109,12 @@ export async function savePdf(
   sensitive = false,
 ) {
   const { fromByteArray } = await import("base64-js");
+  let stage = "prepare document storage";
   const id = Crypto.randomUUID(),
     dir = `${root}${id}/`;
   await FS.makeDirectoryAsync(dir, { intermediates: true });
   try {
+    stage = "preserve scan images";
     const stored: ScanPage[] = [];
     for (const [i, p] of pages.entries()) {
       const originalUri = `${dir}${i}-original.jpg`,
@@ -125,10 +127,12 @@ export async function savePdf(
     }
     const uri = `${dir}document.pdf`,
       temp = `${dir}document.tmp`;
+    stage = "write PDF to storage";
     await FS.writeAsStringAsync(temp, fromByteArray(bytes), {
       encoding: FS.EncodingType.Base64,
     });
     await FS.moveAsync({ from: temp, to: uri });
+    stage = "validate the PDF";
     const { PDFDocument } = await import("pdf-lib");
     const pdf = await PDFDocument.load(bytes);
     const now = new Date().toISOString();
@@ -150,11 +154,15 @@ export async function savePdf(
       text: stored.map((p) => p.text ?? "").join("\n\n"),
       sensitive,
     };
+    stage = "add PDF to your library";
     await persist(doc);
     return doc;
   } catch (error) {
     await FS.deleteAsync(dir, { idempotent: true }).catch(() => {});
-    throw error;
+    throw new Error(
+      `Could not ${stage}: ${error instanceof Error ? error.message : String(error)}. Your scan is still available; retry saving.`,
+      { cause: error },
+    );
   }
 }
 export async function duplicateDocument(doc: LocalDocument) {

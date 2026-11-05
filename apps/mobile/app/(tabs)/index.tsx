@@ -74,7 +74,7 @@ export default function Home() {
         />
         <View
           style={{
-            backgroundColor: "#183f30",
+            backgroundColor: "#14345c",
             borderRadius: 28,
             padding: 24,
             gap: 18,
@@ -85,7 +85,7 @@ export default function Home() {
             <View style={{ flex: 1, gap: 10 }}>
               <Text
                 style={{
-                  color: "#d9e8b7",
+                  color: "#a8d7ff",
                   fontSize: 11,
                   fontWeight: "800",
                   letterSpacing: 2,
@@ -101,9 +101,9 @@ export default function Home() {
                   lineHeight: 32,
                 }}
               >
-                A clear scan.\nA fresh start.
+                Scan. Save. Share.
               </Text>
-              <Text style={{ color: "#b9d0c3", fontSize: 13, lineHeight: 20 }}>
+              <Text style={{ color: "#c4d9f3", fontSize: 13, lineHeight: 20 }}>
                 Capture one page or a whole stack.
               </Text>
             </View>
@@ -112,20 +112,20 @@ export default function Home() {
                 width: 80,
                 height: 106,
                 borderRadius: 10,
-                backgroundColor: "#f3f4e7",
+                backgroundColor: "#f2f7ff",
                 transform: [{ rotate: "8deg" }],
                 padding: 13,
                 gap: 9,
               }}
             >
-              <Ionicons name="scan-outline" size={32} color="#22634b" />
+              <Ionicons name="scan-outline" size={32} color="#1665d8" />
               {[1, 2, 3].map((i) => (
                 <View
                   key={i}
                   style={{
                     height: 4,
                     width: i === 3 ? "55%" : "100%",
-                    backgroundColor: "#c4d6c4",
+                    backgroundColor: "#c6daf2",
                     borderRadius: 2,
                   }}
                 />
@@ -158,37 +158,48 @@ export default function Home() {
             </Card>
           ))}
         </View>
-        <ActionCard
-          title="Import from gallery"
-          description="Turn existing photos into a clean PDF"
-          icon="images-outline"
-          onPress={async () => {
-            if (!(await confirmReplaceDraft())) return;
-            const pages = await importImages();
-            if (pages.length) {
-              useDraft.getState().clear();
-              useDraft.getState().add(pages);
-              router.push("/editor");
-            }
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 10,
           }}
-        />
-        <ActionCard
-          title="Add a PDF"
-          description="Keep your files together in one place"
-          icon="document-attach-outline"
-          onPress={async () => {
-            const doc = await importPdf();
-            if (doc)
-              router.push({
-                pathname: "/document/[id]",
-                params: { id: doc.id },
-              });
-          }}
-        />
+        >
+          <ActionCard
+            tile
+            title="Photo to PDF"
+            description="Turn existing photos into a clean PDF"
+            icon="images-outline"
+            onPress={async () => {
+              if (!(await confirmReplaceDraft())) return;
+              const pages = await importImages();
+              if (pages.length) {
+                useDraft.getState().clear();
+                useDraft.getState().add(pages);
+                router.push("/editor");
+              }
+            }}
+          />
+          <ActionCard
+            tile
+            title="Import PDF"
+            description="Keep your files together in one place"
+            icon="document-attach-outline"
+            onPress={async () => {
+              const doc = await importPdf();
+              if (doc)
+                router.push({
+                  pathname: "/document/[id]",
+                  params: { id: doc.id },
+                });
+            }}
+          />
+        </View>
         <View style={{ ...layout.row, justifyContent: "space-between" }}>
           <Label size={21}>Recently added</Label>
           <Button
             title="View all"
+            icon="arrow-forward-outline"
             secondary
             onPress={() => router.push("/documents")}
           />
@@ -201,7 +212,11 @@ export default function Home() {
         ) : loading && !docs.length ? (
           <ActivityIndicator color={t.primary} />
         ) : (
-          <DocumentList documents={docs.slice(0, 5)} scroll={false} />
+          <DocumentList
+            documents={docs.slice(0, 5)}
+            scroll={false}
+            onChange={() => void reload()}
+          />
         )}
         <Notice
           message={

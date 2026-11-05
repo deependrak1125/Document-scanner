@@ -1,3 +1,4 @@
+import { officeTools } from "./office-tools.js";
 import openapi from "./openapi.json" with { type: "json" };
 import { pdfTools } from "./pdf-tools.js";
 import express from "express";
@@ -271,6 +272,7 @@ export function createApp(
   );
   api.use(authenticate);
   api.use("/pdf", pdfTools);
+  api.use("/office", officeTools);
   api.get("/auth/me", async (req, res) =>
     res.json(publicUser((await User.findById(identity(req).userId))!)),
   );

@@ -111,6 +111,10 @@ export function TranslationPanel({
               setProgress,
             );
             setOutput(result);
+            if (result.trim() === sourceText.trim())
+              setProgress(
+                "The translation returned unchanged text. Check the source language; names and numbers may remain the same.",
+              );
             await setSetting(`translation:${id}`, {
               input: sourceText,
               output: result,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { View, Image, PanResponder, useWindowDimensions } from "react-native";
 import Svg, { Polygon, Circle } from "react-native-svg";
 import type { Corner } from "../native/image";
@@ -15,7 +15,10 @@ export function CropEditor({
   onApply: (corners: Corner[]) => Promise<void>;
 }) {
   const window = useWindowDimensions();
-  const w = window.width - 44,
+  const [availableWidth, setAvailableWidth] = useState(
+    Math.min(window.width - 40, 720),
+  );
+  const w = availableWidth,
     h = Math.min(400, (w * height) / width),
     iw = Math.min(w, (h * width) / height),
     ih = (iw * height) / width;
@@ -25,8 +28,44 @@ export function CropEditor({
     [0.97, 0.97],
     [0.03, 0.97],
   ]);
+  const latest = useRef(points);
+  latest.current = points;
+  const starts = useRef<Corner[]>(points);
+  const responders = useMemo(
+    () =>
+      [0, 1, 2, 3].map((index) =>
+        PanResponder.create({
+          onStartShouldSetPanResponder: () => true,
+          onPanResponderTerminationRequest: () => false,
+          onPanResponderGrant: () => {
+            starts.current[index] = [...latest.current[index]];
+          },
+          onPanResponderMove: (_, g) =>
+            setPoints((previous) =>
+              previous.map((point, i) =>
+                i === index
+                  ? [
+                      Math.max(
+                        0,
+                        Math.min(1, starts.current[index][0] + g.dx / iw),
+                      ),
+                      Math.max(
+                        0,
+                        Math.min(1, starts.current[index][1] + g.dy / ih),
+                      ),
+                    ]
+                  : point,
+              ),
+            ),
+        }),
+      ),
+    [iw, ih],
+  );
   return (
-    <View style={{ gap: 12 }}>
+    <View
+      style={{ gap: 12 }}
+      onLayout={(event) => setAvailableWidth(event.nativeEvent.layout.width)}
+    >
       <Label muted>Drag each corner to the edge of the paper.</Label>
       <View style={{ width: iw, height: ih, alignSelf: "center" }}>
         <Image source={{ uri }} style={{ width: iw, height: ih }} />
@@ -47,26 +86,11 @@ export function CropEditor({
           ))}
         </Svg>
         {points.map((p, index) => {
-          const start = [...p];
-          const responder = PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onPanResponderMove: (_, g) =>
-              setPoints((previous) =>
-                previous.map((point, i) =>
-                  i === index
-                    ? [
-                        Math.max(0, Math.min(1, start[0] + g.dx / iw)),
-                        Math.max(0, Math.min(1, start[1] + g.dy / ih)),
-                      ]
-                    : point,
-                ),
-              ),
-          });
           return (
             <View
               key={index}
               accessibilityLabel={`Crop corner ${index + 1}`}
-              {...responder.panHandlers}
+              {...responders[index].panHandlers}
               style={{
                 position: "absolute",
                 left: p[0] * iw - 22,

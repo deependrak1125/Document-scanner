@@ -1846,6 +1846,75 @@
           }
         ]
       }
+    },
+    "/office/convert": {
+      "post": {
+        "summary": "Convert a DOCX, XLSX or PPTX file to PDF",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Folio-Consent",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["upload-for-processing"]
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Folio-Format",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["docx", "xlsx", "pptx"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Converted PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid format or missing upload consent"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "422": {
+            "description": "Conversion failed"
+          },
+          "429": {
+            "description": "Worker busy"
+          },
+          "503": {
+            "description": "Office conversion is disabled"
+          }
+        }
+      }
     }
   }
 }

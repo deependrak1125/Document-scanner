@@ -11,7 +11,12 @@ import { api, authorized, signOut, useAuth } from "../../features/auth";
 import { sync } from "../../features/sync";
 import { Button, Label, Card, layout } from "../../components/ui";
 import { useTheme } from "../../theme";
-import { PageHeading, Chip } from "../../components/experience";
+import {
+  PageHeading,
+  Chip,
+  SectionHeading,
+  IconBadge,
+} from "../../components/experience";
 export default function Profile() {
   const autoSyncStatus = useSyncStatus((s) => s.message);
   const t = useTheme(),
@@ -27,11 +32,19 @@ export default function Profile() {
       <ScrollView contentContainerStyle={layout.content}>
         <PageHeading
           eyebrow="Just the way you like it"
-          title="Your space."
+          title="Settings"
           subtitle="Your account, your preferences, your privacy."
         />
         <Card>
-          <Label size={24}>{user?.name ?? "Make yourself at home."}</Label>
+          <View style={layout.row}>
+            <IconBadge icon="person-outline" large />
+            <View style={{ flex: 1 }}>
+              <Label size={22}>{user?.name ?? "Your local workspace"}</Label>
+              <Label muted size={12}>
+                {user ? "Folio account" : "No account needed to scan"}
+              </Label>
+            </View>
+          </View>
           <Label muted>
             {user?.email ?? "You’re using Folio privately on this device."}
           </Label>
@@ -41,11 +54,16 @@ export default function Profile() {
               onPress={() => router.push("/login")}
             />
           ) : (
-            <Button title="Sign out" secondary onPress={signOut} />
+            <Button
+              title="Sign out"
+              icon="log-out-outline"
+              secondary
+              onPress={signOut}
+            />
           )}
         </Card>
         <Card>
-          <Label size={19}>Cloud backup</Label>
+          <SectionHeading title="Cloud backup" icon="cloud-upload-outline" />
           <Label muted>
             When enabled, Folio automatically uploads ordinary documents to your
             account while the app is open. ID scans stay local. Disable backup
@@ -55,6 +73,7 @@ export default function Profile() {
             <Label>Allow cloud backup</Label>
             <Switch
               accessibilityLabel="Allow cloud backup"
+              trackColor={{ false: t.line, true: t.primary }}
               value={settings.backup}
               onValueChange={(v) => {
                 if (v && !user) {
@@ -71,6 +90,7 @@ export default function Profile() {
           </View>
           <Button
             title="Sync now & restore"
+            icon="sync-outline"
             secondary
             disabled={!settings.backup}
             onPress={() => sync(setProgress)}
@@ -78,13 +98,20 @@ export default function Profile() {
           <Label muted>{progress || autoSyncStatus}</Label>
         </Card>
         <Card>
-          <Label size={19}>Make it yours</Label>
+          <SectionHeading title="Make it yours" icon="color-palette-outline" />
           <Label muted size={12}>
             APPEARANCE
           </Label>
           <View style={layout.wrap}>
             {(["system", "light", "dark"] as const).map((theme) => (
               <Chip
+                icon={
+                  theme === "dark"
+                    ? "moon-outline"
+                    : theme === "light"
+                      ? "sunny-outline"
+                      : "phone-portrait-outline"
+                }
                 key={theme}
                 title={theme[0].toUpperCase() + theme.slice(1)}
                 selected={settings.theme === theme}
@@ -100,6 +127,7 @@ export default function Profile() {
           </View>
           <Button
             secondary
+            icon="options-outline"
             title={`Scan quality: ${settings.quality === 75 ? "Standard" : settings.quality === 90 ? "High" : "Maximum"}`}
             onPress={() =>
               settings.change(
@@ -114,6 +142,7 @@ export default function Profile() {
           />
           <Button
             secondary
+            icon="finger-print-outline"
             title={
               settings.lock
                 ? "Disable app lock"
@@ -134,9 +163,10 @@ export default function Profile() {
           />
         </Card>
         <Card>
-          <Label size={19}>Subscription</Label>
+          <SectionHeading title="Subscription" icon="sparkles-outline" />
           <Button
             title="Plans & restore purchases"
+            icon="sparkles-outline"
             secondary
             onPress={() => router.push("/subscription")}
           />
@@ -165,7 +195,10 @@ export default function Profile() {
           {subscription && <Label>{subscription}</Label>}
         </Card>
         <Card>
-          <Label size={19}>Privacy, by design</Label>
+          <SectionHeading
+            title="Privacy, by design"
+            icon="shield-checkmark-outline"
+          />
           <Label muted>
             Folio stores scans in app-private storage. Cloud backup is optional.
             OCR runs on this device. No document contents are sent to
@@ -181,6 +214,7 @@ export default function Profile() {
           <>
             <Button
               title="Export my account data"
+              icon="download-outline"
               secondary
               onPress={async () => {
                 const data = await authorized(() =>
@@ -193,6 +227,7 @@ export default function Profile() {
             />
             <Button
               title="Delete cloud account"
+              icon="trash-outline"
               danger
               onPress={() =>
                 Alert.alert(

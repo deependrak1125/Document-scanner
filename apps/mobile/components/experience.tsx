@@ -32,12 +32,13 @@ export function PageHeading({
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <Text
           accessibilityRole="header"
+          numberOfLines={3}
           style={{
             flex: 1,
             color: t.text,
-            fontSize: 32,
+            fontSize: 28,
             fontWeight: "800",
-            letterSpacing: -1.2,
+            letterSpacing: -0.8,
           }}
         >
           {title}
@@ -145,7 +146,7 @@ export function ActionCard({
       }}
       style={({ pressed }) => ({
         padding: tile ? 15 : 18,
-        width: tile ? "48%" : undefined,
+        width: tile ? "47.5%" : undefined,
         minHeight: tile ? 172 : undefined,
         borderRadius: 22,
         borderWidth: 1,
@@ -229,11 +230,13 @@ export function Disclosure({
   description,
   children,
   initiallyOpen = false,
+  icon,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   initiallyOpen?: boolean;
+  icon?: Icon;
 }) {
   const t = useTheme(),
     [open, setOpen] = useState(initiallyOpen);
@@ -258,6 +261,7 @@ export function Disclosure({
           gap: 12,
         }}
       >
+        {icon && <IconBadge icon={icon} />}
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>
             {title}
@@ -277,6 +281,56 @@ export function Disclosure({
       {open && (
         <View style={{ padding: 18, paddingTop: 0, gap: 14 }}>{children}</View>
       )}
+    </View>
+  );
+}
+
+export function IconBadge({
+  icon,
+  large = false,
+}: {
+  icon: Icon;
+  large?: boolean;
+}) {
+  const t = useTheme();
+  return (
+    <View
+      style={{
+        width: large ? 72 : 40,
+        height: large ? 72 : 40,
+        borderRadius: large ? 22 : 13,
+        backgroundColor: t.tint,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Ionicons name={icon} size={large ? 34 : 20} color={t.primary} />
+    </View>
+  );
+}
+export function SectionHeading({
+  title,
+  icon,
+  subtitle,
+}: {
+  title: string;
+  icon: Icon;
+  subtitle?: string;
+}) {
+  const t = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <IconBadge icon={icon} />
+      <View style={{ flex: 1, gap: 3 }}>
+        <Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={{ color: t.muted, fontSize: 12, lineHeight: 18 }}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }

@@ -29,7 +29,7 @@ export default function TabLayout() {
           paddingBottom: bottomPadding,
           paddingTop: 10,
         },
-        tabBarIcon: ({ color, size }) => (
+        tabBarIcon: ({ color, size, focused }) => (
           <View
             style={
               route.name === "scan"
@@ -41,7 +41,14 @@ export default function TabLayout() {
                     alignItems: "center",
                     justifyContent: "center",
                   }
-                : undefined
+                : {
+                    width: 44,
+                    height: 32,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: focused ? t.tint : "transparent",
+                  }
             }
           >
             <Ionicons
@@ -65,7 +72,7 @@ export default function TabLayout() {
       <Tabs.Screen name="documents" options={{ title: "Documents" }} />
       <Tabs.Screen name="scan" options={{ title: "Scan" }} />
       <Tabs.Screen name="tools" options={{ title: "PDF tools" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen name="profile" options={{ title: "Settings" }} />
     </Tabs>
   );
 }

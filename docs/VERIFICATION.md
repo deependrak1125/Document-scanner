@@ -55,3 +55,33 @@ Physical-device camera, crop, OCR, app-lock and purchase behavior; iOS compilati
 - No Android device was connected (`adb devices` returned no devices). Native translation/model-download and real-photo appearance remain device acceptance tasks. Translation unit tests mock the native boundary; they do not certify linguistic accuracy.
 
 Standalone ARM64 test APK: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`. Release build passed in 4m42s; APK signature and ZIP integrity passed; `assets/index.android.bundle` is present. Uses the existing development signing key, not store signing. SHA-256: `092879239be242feee5fffebb805441a23f174918461aa9355461a4853d40451`. Metro is not required; configured localhost API/cloud endpoints still need a reachable development server for account/cloud operations.
+
+## Preview controls and categorized tools — 4 November 2026
+
+- Replaced text-only filter choices with actual native-processed thumbnail previews. Added compact icon controls and a fixed safe-area Save footer; saving locks competing edits and reports the failing storage stage without discarding the draft.
+- Added a blue/slate shared palette and coordinated home styling. Tools now use six category sections and a two-column icon grid with search; 19 connected actions include OCR-backed Markdown export.
+- Added signature drag/resize on raster page previews with crop-box and rotation-aware PDF coordinates. Fixed gesture responder lifetime in crop and signature drawing, excluded the drawing border from signature output, and made saved signature filenames unique to avoid stale image caching.
+- Connected the previously missing document-to-translation OCR callback. Added OCR progress/empty-result feedback, guarded overlapping OCR jobs, and added feedback when machine translation returns unchanged text.
+- `npm test`: 44 passed in nine files. An earlier API run timed out against the temporary local MongoDB; the clean repeat passed all tests. Workspace TypeScript and mobile/shared/tests ESLint passed.
+- Standalone ARM64 APK build passed in 24 seconds. ZIP integrity and APK v2 signature verified. Size 113,071,051 bytes. SHA-256 `3cecf9bcb97c67674f96a3428aa3303dfaef01b0e5e65dd05a6f2cda74ecf216`.
+- APK: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`. Development signing, bundled JS, no Metro needed.
+- `adb devices` found no connected device. The user's unspecified PDF-save failure is not reproduced; storage tests and better failure diagnostics do not certify that device-specific issue as fixed. Gesture/visual acceptance, native OCR quality and translation-model download still need a device check. Unsupported advanced PDF operations remain listed in PDF-TOOLS.md.
+
+## All mobile screens UI pass — 4 November 2026
+
+- Unified typography, spacing, icon badges and section headings across Home, library, Scan, Tools, Settings, login, subscription, document details, editor, manual camera, onboarding and lock screen.
+- Added persistent field labels, focused input outlines, search clear controls and password visibility toggle. Content uses a centered maximum width on tablets; onboarding scrolls on smaller displays; crop canvas measures its actual available width.
+- Home has paired import tiles, library cards have bounded filenames and press feedback, and tab selection has a visible background. Tools category headers have icons and category-specific empty-search feedback.
+- Document details lead with the document title and preview, with rename behind a disclosure and compact icon actions. Editor fine adjustments and page/paper controls collapse independently. Settings groups have clear icon headers; unavailable paid plans show a useful free-plan screen. Manual camera has a framing guide and clearer review controls.
+- Workspace TypeScript and mobile ESLint passed. UI-only changes did not add implementation-mirroring tests. Standalone ARM64 Android build passed in 30 seconds; ZIP integrity and APK signing verified.
+- APK SHA-256: `54d9513f19e6c677f6448fa89d0cacc37d6693e24079b2bfe2ea630c95342eff`. Path: `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`; existing development signing; Metro not required.
+- This pass does not claim physical-device visual/touch acceptance or iOS compilation. Functional limitations in PDF-TOOLS.md remain unchanged.
+
+## Workflow improvements — 4 November 2026
+
+- Added session undo/redo for scan edits, page changes and OCR; history is bounded to 20 snapshots and cleared when a draft is saved/discarded. Removing the last page is recoverable. Draft/history remain in memory, not durable storage.
+- Added all-page filter application with progress and atomic draft replacement, next/previous page reordering, copied OCR text, and Save & Share with a saved-document fallback when sharing fails. Fine adjustments and paper controls are collapsible.
+- Added a dedicated merge route: choose/add/remove files, move files earlier/later, set an output name, review order and merge. Limits: 20 input files, 30 MB per picker file, 60 MB aggregate (checked again from actual bytes before merging).
+- Added a safe-area document actions sheet from the library/Home: long press or ellipsis to Share, Favorite, Trash or Restore. Trash requires confirmation; parent lists refresh after changes. Corrected misleading remove-pages instructions and added a startup loading indicator.
+- All 48 tests passed in 10 files, including four new history regression tests. Workspace TypeScript and mobile/tests ESLint passed. Android ARM64 standalone build passed in 24 seconds; ZIP integrity and signing verified.
+- APK SHA-256: `71e06a3f71f3b746297dc7653859893336ca1fcef14eeb4f14bbd7fcd1889d2a`. Same release output path and development signing as above. Physical-device visual/touch acceptance remains pending.

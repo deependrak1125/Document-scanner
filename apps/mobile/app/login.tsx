@@ -1,4 +1,4 @@
-import { PageHeading, Notice } from "../components/experience";
+import { PageHeading, Notice, IconBadge } from "../components/experience";
 import { Screen } from "../components/Screen";
 import { useState } from "react";
 import { ScrollView, KeyboardAvoidingView, Platform } from "react-native";
@@ -35,9 +35,10 @@ function LoginContent() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={layout.content}
       >
+        <IconBadge icon="documents-outline" large />
         <PageHeading
           eyebrow="Your Folio account"
-          title={register ? "Make room for more." : "Good to see you."}
+          title={register ? "Create your account" : "Welcome back"}
           subtitle={
             register
               ? "Create your account for optional cloud backup."
@@ -75,6 +76,7 @@ function LoginContent() {
         />
         {errors.password && <Label>{errors.password.message}</Label>}
         <Button
+          icon="arrow-forward-outline"
           title={register ? "Create account" : "Sign in"}
           onPress={handleSubmit(async (values) => {
             if (register && !name.trim()) throw new Error("Enter your name.");

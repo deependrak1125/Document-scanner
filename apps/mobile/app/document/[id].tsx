@@ -1,13 +1,17 @@
 import { PDFDocument } from "pdf-lib";
 import { SignaturePlacement } from "../../components/SignaturePlacement";
-import { pdfPlacement, type Placement } from "../../features/signature/placement";
+import {
+  pdfPlacement,
+  type Placement,
+} from "../../features/signature/placement";
 import { TranslationPanel } from "../../components/TranslationPanel";
 import { confirmReplaceDraft } from "../../features/scanner/draft";
-import { Disclosure } from "../../components/experience";
+import { Disclosure, PageHeading } from "../../components/experience";
+import { useTheme } from "../../theme";
 import { Screen } from "../../components/Screen";
 import { rasterizePdf } from "../../native/image";
 import * as Crypto from "expo-crypto";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ScrollView, View, Alert } from "react-native";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Pdf from "react-native-pdf";
@@ -42,6 +46,7 @@ export default function DocumentScreen() {
   );
 }
 function DocumentScreenContent() {
+  const theme = useTheme();
   const { id, panel } = useLocalSearchParams<{ id: string; panel?: string }>(),
     [doc, setDoc] = useState<LocalDocument | null>(null),
     [title, setTitle] = useState(""),
@@ -57,7 +62,9 @@ function DocumentScreenContent() {
     [width, setWidth] = useState("180"),
     [angle, setAngle] = useState("0"),
     [error, setError] = useState(""),
-    [loading, setLoading] = useState(true);
+    [loading, setLoading] = useState(true),
+    [ocrProgress, setOcrProgress] = useState("");
+  const ocrPending = useRef(false);
   const reload = useCallback(() => {
     setLoading(true);
     setError("");
@@ -99,28 +106,44 @@ function DocumentScreenContent() {
   async function runOcr(language: "latin" | "devanagari") {
     if (current.pageCount > 50)
       throw new Error("Split PDFs longer than 50 pages before running OCR.");
-    const sourcePages = [...current.pages];
-    if (!sourcePages.length) {
-      for (let i = 0; i < current.pageCount; i++) {
-        const image = await rasterizePdf(current.uri, i);
-        const uri = `${FS.documentDirectory}folio/${current.id}/ocr-${Crypto.randomUUID()}.jpg`;
-        await FS.copyAsync({ from: image.uri, to: uri });
-        sourcePages.push({
-          id: Crypto.randomUUID(),
-          ...image,
-          uri,
-          originalUri: uri,
-          rotation: 0,
-          filter: "original",
-        });
+    if (ocrPending.current)
+      throw new Error("Text recognition is already running.");
+    ocrPending.current = true;
+    setOcrProgress("Preparing document…");
+    try {
+      const sourcePages = [...current.pages];
+      if (!sourcePages.length) {
+        for (let i = 0; i < current.pageCount; i++) {
+          const image = await rasterizePdf(current.uri, i);
+          const uri = `${FS.documentDirectory}folio/${current.id}/ocr-${Crypto.randomUUID()}.jpg`;
+          await FS.copyAsync({ from: image.uri, to: uri });
+          sourcePages.push({
+            id: Crypto.randomUUID(),
+            ...image,
+            uri,
+            originalUri: uri,
+            rotation: 0,
+            filter: "original",
+          });
+        }
       }
+      const pages = [];
+      for (const [i, page] of sourcePages.entries()) {
+        setOcrProgress(`Reading page ${i + 1} of ${sourcePages.length}…`);
+        pages.push(await recognize(page, language));
+      }
+      const text = pages.map((p) => p.text ?? "").join("\n\n");
+      await patch({ pages, text });
+      if (!text.trim())
+        Alert.alert(
+          "No text found",
+          "Choose the correct language and try a sharper scan. Original or Clean color often works best.",
+        );
+      return text;
+    } finally {
+      ocrPending.current = false;
+      setOcrProgress("");
     }
-    const pages = [];
-    for (const page of sourcePages) pages.push(await recognize(page, language));
-    const text = pages.map((p) => p.text ?? "").join("\n\n");
-    await patch({ pages, text });
-    if (!text.trim()) Alert.alert("No text found", "Choose the correct language and try a sharper scan. Original or Clean color often works best.");
-    return text;
   }
   async function searchable() {
     if (!current.pages.length || !current.pages.every((p) => p.words?.length))
@@ -165,9 +188,18 @@ function DocumentScreenContent() {
     )
       throw new Error("Enter valid placement coordinates.");
     const source = await readBytes(current.uri);
-    const selectedPage = (await PDFDocument.load(source)).getPage(pageIndex - 1);
-    const visualPlacement = placement ? pdfPlacement(placement, selectedPage.getCropBox(), selectedPage.getRotation().angle) : null;
-    if (kind === "signature" && !visualPlacement) throw new Error("Wait for the signature preview to load.");
+    const selectedPage = (await PDFDocument.load(source)).getPage(
+      pageIndex - 1,
+    );
+    const visualPlacement = placement
+      ? pdfPlacement(
+          placement,
+          selectedPage.getCropBox(),
+          selectedPage.getRotation().angle,
+        )
+      : null;
+    if (kind === "signature" && !visualPlacement)
+      throw new Error("Wait for the signature preview to load.");
     const bytes = await editPdf(
       source,
       kind === "signature"
@@ -200,25 +232,41 @@ function DocumentScreenContent() {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={layout.content}
     >
-      <Field
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Document title"
+      <PageHeading
+        title={doc.title}
+        subtitle={`${doc.pageCount} pages · ${(doc.fileSize / 1048576).toFixed(2)} MB · ${doc.sensitive ? "Private document" : "Saved on device"}`}
       />
-      <Button
-        title="Rename"
-        secondary
-        disabled={!title.trim() || title === doc.title}
-        onPress={() => patch({ title: title.trim() })}
-      />
-      <Label muted>
-        {doc.pageCount} pages · {(doc.fileSize / 1048576).toFixed(2)} MB ·{" "}
-        {doc.syncState}
-      </Label>
+      <Disclosure
+        title="Document name"
+        icon="pencil-outline"
+        description="Rename this file"
+      >
+        <Field
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Document title"
+        />
+        <Button
+          title="Rename"
+          secondary
+          disabled={!title.trim() || title === doc.title}
+          onPress={() => patch({ title: title.trim() })}
+        />
+      </Disclosure>
       <Pdf
         source={{ uri: doc.uri, cache: false }}
-        style={{ height: 440, width: "100%", backgroundColor: "#e6eded" }}
-        onPageChanged={(p) => setPageIndex(p)}
+        style={{
+          height: 440,
+          width: "100%",
+          backgroundColor: theme.tint,
+          borderRadius: 16,
+        }}
+        onPageChanged={(p) => {
+          if (p !== pageIndex) {
+            setPlacement(null);
+            setPageIndex(p);
+          }
+        }}
         onError={(e) => setError(String(e))}
         trustAllCerts={false}
         enablePaging
@@ -230,6 +278,7 @@ function DocumentScreenContent() {
       <View style={layout.wrap}>
         <Button
           title="Share PDF"
+          compact
           icon="share-outline"
           onPress={() =>
             Sharing.shareAsync(doc.uri, { mimeType: "application/pdf" })
@@ -237,16 +286,22 @@ function DocumentScreenContent() {
         />
         <Button
           title="Print"
+          compact
+          icon="print-outline"
           secondary
           onPress={() => Print.printAsync({ uri: doc.uri })}
         />
         <Button
           title={doc.favorite ? "Unfavorite" : "Favorite"}
+          compact
+          icon={doc.favorite ? "star" : "star-outline"}
           secondary
           onPress={() => patch({ favorite: !doc.favorite })}
         />
         <Button
           title="Duplicate"
+          compact
+          icon="copy-outline"
           secondary
           onPress={async () => {
             const copy = await duplicateDocument(doc);
@@ -259,6 +314,8 @@ function DocumentScreenContent() {
         {
           <Button
             title="Filters & crop pages"
+            compact
+            icon="color-filter-outline"
             secondary
             onPress={async () => {
               if (!(await confirmReplaceDraft())) return;
@@ -276,6 +333,7 @@ function DocumentScreenContent() {
       </View>
       <Disclosure
         title="Folder"
+        icon="folder-outline"
         description="Choose where this document belongs"
       >
         <View style={layout.wrap}>
@@ -295,22 +353,34 @@ function DocumentScreenContent() {
         </View>
       </Disclosure>
       <Disclosure
-        initiallyOpen={panel === "ocr" || panel === "translate" || panel === "markdown"}
+        initiallyOpen={
+          panel === "ocr" || panel === "translate" || panel === "markdown"
+        }
         title="Text recognition"
+        icon="scan-outline"
         description="Read, copy or create a searchable PDF"
       >
         <View style={layout.wrap}>
           <Button
             secondary
             title="Read English"
+            icon="scan-outline"
+            disabled={!!ocrProgress}
             onPress={() => runOcr("latin")}
           />
           <Button
             secondary
             title="Read Hindi"
+            icon="scan-outline"
+            disabled={!!ocrProgress}
             onPress={() => runOcr("devanagari")}
           />
         </View>
+        {!!ocrProgress && <Label muted>{ocrProgress}</Label>}
+        <Label muted size={12}>
+          OCR extracts the words in your document. To change the language, use
+          Translate document below.
+        </Label>
         {doc.text ? (
           <>
             <Label>{doc.text}</Label>
@@ -339,19 +409,41 @@ function DocumentScreenContent() {
           </Label>
         )}
       </Disclosure>
-      <Disclosure initiallyOpen={panel === "markdown"} title="PDF to Markdown" description="Export recognized text with page headings">
-        <Label muted size={12}>Run English or Hindi text recognition above first. This exports text in page order; tables and original layout are not reconstructed.</Label>
-        <Button title="Export Markdown" icon="logo-markdown" disabled={!doc.text.trim()} onPress={async () => {
-          const { documentMarkdown } = await import("../../features/pdf/markdown");
-          const markdown = documentMarkdown(doc.title, doc.pages.map(p => p.text ?? ""), doc.text);
-          const uri = `${FS.cacheDirectory}${doc.id}.md`;
-          await FS.writeAsStringAsync(uri, markdown);
-          await Sharing.shareAsync(uri, { mimeType: "text/markdown", UTI: "net.daringfireball.markdown" });
-        }} />
+      <Disclosure
+        initiallyOpen={panel === "markdown"}
+        title="PDF to Markdown"
+        icon="logo-markdown"
+        description="Export recognized text with page headings"
+      >
+        <Label muted size={12}>
+          Run English or Hindi text recognition above first. This exports text
+          in page order; tables and original layout are not reconstructed.
+        </Label>
+        <Button
+          title="Export Markdown"
+          icon="logo-markdown"
+          disabled={!doc.text.trim()}
+          onPress={async () => {
+            const { documentMarkdown } =
+              await import("../../features/pdf/markdown");
+            const markdown = documentMarkdown(
+              doc.title,
+              doc.pages.map((p) => p.text ?? ""),
+              doc.text,
+            );
+            const uri = `${FS.cacheDirectory}${doc.id}.md`;
+            await FS.writeAsStringAsync(uri, markdown);
+            await Sharing.shareAsync(uri, {
+              mimeType: "text/markdown",
+              UTI: "net.daringfireball.markdown",
+            });
+          }}
+        />
       </Disclosure>
       <Disclosure
         initiallyOpen={panel === "translate"}
         title="Translate document"
+        icon="language-outline"
         description="English ↔ Hindi · copy, TXT and translated PDF"
       >
         <TranslationPanel
@@ -359,12 +451,15 @@ function DocumentScreenContent() {
           id={doc.id}
           title={doc.title}
           sensitive={doc.sensitive}
-          onRecognize={language => runOcr(language === "hi" ? "devanagari" : "latin")}
+          onRecognize={(language) =>
+            runOcr(language === "hi" ? "devanagari" : "latin")
+          }
         />
       </Disclosure>
       <Disclosure
         initiallyOpen={panel === "sign"}
         title="Signature & notes"
+        icon="create-outline"
         description="Sign your PDF or add a text note"
       >
         <Button
@@ -374,8 +469,9 @@ function DocumentScreenContent() {
         />
         {signature && (
           <SignaturePad
+            onDrawing={setDragging}
             onSave={async (uri) => {
-              const target = `${FS.documentDirectory}folio-signature.png`;
+              const target = `${FS.documentDirectory}folio-signature-${Crypto.randomUUID()}.png`;
               await FS.copyAsync({ from: uri, to: target });
               await setSetting("signature", target);
               setSignatureUri(target);
@@ -383,41 +479,63 @@ function DocumentScreenContent() {
             }}
           />
         )}
-        {signatureUri && <SignaturePlacement key={`${doc.id}:${pageIndex}:${signatureUri}`} uri={doc.uri} page={pageIndex - 1} signature={signatureUri} onChange={setPlacement} onDrag={setDragging} />}
-        <Button title="Save signed PDF" icon="checkmark-outline" disabled={!signatureUri || !placement} onPress={() => annotation("signature")} />
-        <Disclosure title="Text note placement" description="Optional PDF coordinates and note">
-        <Label muted size={12}>
-          Placement uses PDF points from the bottom-left of page {pageIndex}.
-          Save as a new copy and review placement before sharing.
-        </Label>
-        <View style={layout.row}>
-          <View style={{ flex: 1 }}>
-            <Field value={x} onChangeText={setX} placeholder="X" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Field value={y} onChangeText={setY} placeholder="Y" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Field value={width} onChangeText={setWidth} placeholder="Width" />
-          </View>
-        </View>
-        <Field
-          value={angle}
-          onChangeText={setAngle}
-          placeholder="Signature rotation (degrees)"
-        />
-        <Field
-          value={note}
-          onChangeText={setNote}
-          placeholder="Text annotation"
-          multiline
-        />
+        {signatureUri && (
+          <SignaturePlacement
+            key={`${doc.id}:${pageIndex}:${signatureUri}`}
+            uri={doc.uri}
+            page={pageIndex - 1}
+            signature={signatureUri}
+            onChange={setPlacement}
+            onDrag={setDragging}
+          />
+        )}
         <Button
-          title="Add text as new copy"
-          secondary
-          disabled={!note}
-          onPress={() => annotation("note")}
+          title="Save signed PDF"
+          icon="checkmark-outline"
+          disabled={!signatureUri || !placement}
+          onPress={() => annotation("signature")}
         />
+        <Disclosure
+          title="Text note placement"
+          icon="text-outline"
+          description="Optional PDF coordinates and note"
+        >
+          <Label muted size={12}>
+            Placement uses PDF points from the bottom-left of page {pageIndex}.
+            Save as a new copy and review placement before sharing.
+          </Label>
+          <View style={layout.row}>
+            <View style={{ flex: 1 }}>
+              <Field value={x} onChangeText={setX} placeholder="X" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field value={y} onChangeText={setY} placeholder="Y" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Field
+                value={width}
+                onChangeText={setWidth}
+                placeholder="Width"
+              />
+            </View>
+          </View>
+          <Field
+            value={angle}
+            onChangeText={setAngle}
+            placeholder="Signature rotation (degrees)"
+          />
+          <Field
+            value={note}
+            onChangeText={setNote}
+            placeholder="Text annotation"
+            multiline
+          />
+          <Button
+            title="Add text as new copy"
+            secondary
+            disabled={!note}
+            onPress={() => annotation("note")}
+          />
         </Disclosure>
       </Disclosure>
       {doc.syncState === "conflict" && (

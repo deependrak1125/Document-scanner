@@ -51,7 +51,7 @@ export default function Documents() {
       <View style={[layout.content, { flex: 1, paddingBottom: 0, gap: 14 }]}>
         <PageHeading
           eyebrow="Your library"
-          title="Everything in place."
+          title="Documents"
           subtitle="Search your files, including recognized text."
         />
         <Field
@@ -171,6 +171,7 @@ export default function Documents() {
         ) : (
           <DocumentList
             documents={visible}
+            onChange={() => void reload()}
             grid={grid}
             refreshing={loading}
             onRefresh={() => void reload()}

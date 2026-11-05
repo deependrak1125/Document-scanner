@@ -12,7 +12,6 @@ import * as Sharing from "expo-sharing";
 import * as Crypto from "expo-crypto";
 import { Button, Field, Label, Card, layout } from "../../components/ui";
 import {
-  mergeFiles,
   selectPdfs,
   editFile,
   selectPages,
@@ -24,6 +23,7 @@ import { api, authorized, useAuth } from "../../features/auth";
 import { readBytes, savePdf } from "../../database";
 import { useTheme } from "../../theme";
 import {
+  SectionHeading,
   PageHeading,
   Chip,
   Notice,
@@ -52,7 +52,9 @@ export default function Tools() {
     setConsent(false);
     return files[0];
   }
-  async function documentTool(panel: "ocr" | "translate" | "sign" | "markdown") {
+  async function documentTool(
+    panel: "ocr" | "translate" | "sign" | "markdown",
+  ) {
     const chosen = await chooseFile();
     if (!chosen) return;
     const doc = await savePdf(
@@ -80,15 +82,35 @@ export default function Tools() {
     setCatalog(false);
   }
   const tools = [
-    { title: "PDF to Markdown", description: "Recognize text and export an editable .md file", icon: "logo-markdown" as const, onPress: () => documentTool("markdown") },
+    {
+      title: "Office to PDF",
+      description: "DOCX, XLSX and PPTX · server conversion",
+      icon: "document-attach-outline" as const,
+      onPress: () => router.push("/office"),
+    },
+    {
+      title: "Fill PDF forms",
+      description: "Fill existing text fields, checkboxes and choices",
+      icon: "checkbox-outline" as const,
+      onPress: () => router.push("/forms"),
+    },
+    {
+      title: "Compare PDFs",
+      description: "Compare two versions visually on your device",
+      icon: "git-compare-outline" as const,
+      onPress: () => router.push("/compare"),
+    },
+    {
+      title: "PDF to Markdown",
+      description: "Recognize text and export an editable .md file",
+      icon: "logo-markdown" as const,
+      onPress: () => documentTool("markdown"),
+    },
     {
       title: "Merge PDF",
       description: "Combine multiple PDFs into one file",
       icon: "layers-outline" as const,
-      onPress: async () => {
-        const doc = await mergeFiles();
-        if (doc) open(doc.id);
-      },
+      onPress: () => router.push("/merge"),
     },
     {
       title: "Split / extract pages",
@@ -236,14 +258,35 @@ export default function Tools() {
     },
   ];
   const categories: Record<string, string[]> = {
-    Organize: ["Merge PDF", "Split / extract pages", "Remove pages", "Organize pages"],
-    Convert: ["JPG to PDF", "PDF to JPG", "Scan to PDF", "PDF to Markdown"],
+    Organize: [
+      "Merge PDF",
+      "Split / extract pages",
+      "Remove pages",
+      "Organize pages",
+    ],
+    Convert: [
+      "Office to PDF",
+      "JPG to PDF",
+      "PDF to JPG",
+      "Scan to PDF",
+      "PDF to Markdown",
+    ],
     Enhance: ["Compress PDF", "PDF filters", "Crop PDF"],
-    Edit: ["Rotate PDF", "Page numbers", "Watermark PDF", "Sign / annotate PDF"],
+    Edit: [
+      "Fill PDF forms",
+      "Compare PDFs",
+      "Rotate PDF",
+      "Page numbers",
+      "Watermark PDF",
+      "Sign / annotate PDF",
+    ],
     Text: ["OCR / searchable PDF", "Translate document", "Extract text"],
     Security: ["Protect / unlock PDF"],
   };
-  const matches = (tool: typeof tools[number]) => `${tool.title} ${tool.description}`.toLowerCase().includes(toolQuery.toLowerCase());
+  const matches = (tool: (typeof tools)[number]) =>
+    `${tool.title} ${tool.description}`
+      .toLowerCase()
+      .includes(toolQuery.toLowerCase());
   async function edit(options: Parameters<typeof editFile>[2]) {
     if (!file) throw new Error("Choose a PDF first.");
     const doc = await editFile(
@@ -311,7 +354,7 @@ export default function Tools() {
           <>
             <PageHeading
               eyebrow="All PDF tools"
-              title="What would you like to do?"
+              title="PDF workspace"
               subtitle="Choose a tool. Pick your file. Save a new copy."
             />
             <Field
@@ -320,17 +363,64 @@ export default function Tools() {
               placeholder="Search tools…"
             />
             {!!progress && <Notice message={progress} />}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {["All", ...Object.keys(categories)].map(name => <Chip key={name} title={name} selected={category === name} onPress={() => setCategory(name)} />)}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
+            >
+              {["All", ...Object.keys(categories)].map((name) => (
+                <Chip
+                  key={name}
+                  title={name}
+                  selected={category === name}
+                  onPress={() => setCategory(name)}
+                />
+              ))}
             </ScrollView>
-            {Object.entries(categories).filter(([name]) => category === "All" || category === name).map(([name, titles]) => {
-              const items = tools.filter(tool => titles.includes(tool.title) && matches(tool));
-              return items.length ? <View key={name} style={{ gap: 12 }}><Label size={20}>{name}</Label><View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 12 }}>{items.map(tool => <ActionCard key={tool.title} {...tool} tile />)}</View></View> : null;
-            })}
-            {!tools.some((tool) =>
-              `${tool.title} ${tool.description}`
-                .toLowerCase()
-                .includes(toolQuery.toLowerCase()),
+            {Object.entries(categories)
+              .filter(([name]) => category === "All" || category === name)
+              .map(([name, titles]) => {
+                const items = tools.filter(
+                  (tool) => titles.includes(tool.title) && matches(tool),
+                );
+                return items.length ? (
+                  <View key={name} style={{ gap: 12 }}>
+                    <SectionHeading
+                      title={name}
+                      icon={
+                        name === "Organize"
+                          ? "layers-outline"
+                          : name === "Convert"
+                            ? "swap-horizontal-outline"
+                            : name === "Enhance"
+                              ? "sparkles-outline"
+                              : name === "Edit"
+                                ? "create-outline"
+                                : name === "Security"
+                                  ? "shield-checkmark-outline"
+                                  : "text-outline"
+                      }
+                    />
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        justifyContent: "space-between",
+                        gap: 12,
+                      }}
+                    >
+                      {items.map((tool) => (
+                        <ActionCard key={tool.title} {...tool} tile />
+                      ))}
+                    </View>
+                  </View>
+                ) : null;
+              })}
+            {!tools.some(
+              (tool) =>
+                matches(tool) &&
+                (category === "All" ||
+                  categories[category]?.includes(tool.title)),
             ) && (
               <Notice message="No matching tools. Try PDF, translate, crop or merge." />
             )}
@@ -352,10 +442,7 @@ export default function Tools() {
             <Button
               title="Merge multiple PDFs"
               icon="layers-outline"
-              onPress={async () => {
-                const doc = await mergeFiles();
-                if (doc) open(doc.id);
-              }}
+              onPress={() => router.push("/merge")}
             />
             <Button
               title={file ? `Selected: ${file.name}` : "Choose PDF to edit"}
@@ -435,8 +522,9 @@ export default function Tools() {
                   }}
                 />
                 <Label muted size={12}>
-                  To split, save one range at a time. To delete pages, select
-                  the pages you want to keep.
+                  {deletingPages
+                    ? "Select the page numbers to remove. Keep at least one page."
+                    : "Enter pages in the order you want. For example, 3,1-2 saves page 3 first, then pages 1 and 2."}
                 </Label>
                 <View style={layout.wrap}>
                   <Button

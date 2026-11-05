@@ -1,3 +1,9 @@
+import {
+  PageHeading,
+  IconBadge,
+  SectionHeading,
+  Notice,
+} from "../components/experience";
 import { Screen } from "../components/Screen";
 import { useEffect, useState, useRef } from "react";
 import { ScrollView, Platform } from "react-native";
@@ -21,12 +27,30 @@ function SubscriptionScreenContent() {
   if (process.env.EXPO_PUBLIC_BILLING_ENABLED !== "true")
     return (
       <ScrollView contentContainerStyle={layout.content}>
-        <Label size={28}>Keep scanning, freely.</Label>
+        <IconBadge icon="sparkles-outline" large />
+        <PageHeading
+          title="Great scans. No subscription."
+          subtitle="Your everyday document tools are included."
+        />
+        <Card>
+          <SectionHeading
+            title="Folio Free"
+            icon="checkmark-circle-outline"
+            subtitle="Ready to use on this device"
+          />
+          <Label>Scan and organize documents</Label>
+          <Label>Enhance pages and create PDFs</Label>
+          <Label>Recognize text, sign and share</Label>
+        </Card>
         <Label muted>
-          Core scanning and local PDF tools are free. Store subscriptions are
-          disabled for this build until store products, signing, and server
-          verification are configured.
+          Paid plans are not available in this version. You can keep using the
+          free tools without a subscription.
         </Label>
+        <Button
+          title="Explore PDF tools"
+          icon="grid-outline"
+          onPress={() => router.push("/tools")}
+        />
       </ScrollView>
     );
   return <Store />;
@@ -99,7 +123,11 @@ function Store() {
     );
   return (
     <ScrollView contentContainerStyle={layout.content}>
-      <Label size={30}>More room for your documents.</Label>
+      <IconBadge icon="cloud-outline" large />
+      <PageHeading
+        title="Room to grow"
+        subtitle="Keep your documents close, across devices."
+      />
       <Label muted>
         Premium includes 10 GB of cloud storage. Scanning and local PDF tools
         remain free. Prices and renewal terms come from your device’s store.
@@ -153,6 +181,7 @@ function Store() {
       )}
       <Button
         title="Restore & verify purchases"
+        icon="refresh-outline"
         secondary
         disabled={!connected}
         onPress={async () => {
@@ -165,7 +194,7 @@ function Store() {
           for (const purchase of matches) await verify(purchase, true);
         }}
       />
-      {message && <Label>{message}</Label>}
+      {message && <Notice message={message} />}
       <Label muted size={12}>
         Subscriptions renew according to the store’s displayed terms. Manage or
         cancel in your App Store or Google Play account. Purchases unlock

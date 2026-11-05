@@ -250,3 +250,5 @@ export async function textToPdf(text: string, fontBytes: Uint8Array) {
   }
   return pdf.save();
 }
+
+export { inspectForm, fillForm, type FormField } from "./forms";
