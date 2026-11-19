@@ -12,3 +12,18 @@ apps/mobile/ios/
 
 **/dist-android/
 **/dist-ios/
+# Android build files
+*.apk
+*.aab
+
+# Build directories
+android/app/build/
+android/build/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Dependencies
+node_modules/

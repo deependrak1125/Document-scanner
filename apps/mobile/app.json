@@ -4,7 +4,7 @@
     "icon": "./assets/icon.png",
     "slug": "folio-scanner",
     "scheme": "folio",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,11 +17,13 @@
     },
     "android": {
       "package": "com.foliodocument.app",
+      "versionCode": 2,
       "permissions": ["CAMERA"],
       "allowBackup": false
     },
     "plugins": [
       "expo-router",
+      "./plugins/withOptionalAndroidHardware.cjs",
       "expo-secure-store",
       "expo-sqlite",
       "expo-local-authentication",
