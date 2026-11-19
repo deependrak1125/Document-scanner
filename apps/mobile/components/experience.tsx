@@ -110,6 +110,7 @@ export function ActionCard({
   onPress,
   accent = false,
   tile = false,
+  short = false,
 }: {
   title: string;
   description: string;
@@ -117,6 +118,7 @@ export function ActionCard({
   onPress: () => unknown | Promise<unknown>;
   accent?: boolean;
   tile?: boolean;
+  short?: boolean;
 }) {
   const t = useTheme(),
     [busy, setBusy] = useState(false),
@@ -147,7 +149,7 @@ export function ActionCard({
       style={({ pressed }) => ({
         padding: tile ? 15 : 18,
         width: tile ? "47.5%" : undefined,
-        minHeight: tile ? 172 : undefined,
+        minHeight: tile ? (short ? 102 : 172) : undefined,
         borderRadius: 22,
         borderWidth: 1,
         borderColor: accent ? t.primary : t.line,

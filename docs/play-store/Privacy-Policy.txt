@@ -1,0 +1,31 @@
+PRIVACY POLICY
+Folio: Document Scanner & Pdf Editor
+Android package: com.foliodocument.app
+Effective date: [PUBLICATION DATE]
+Operator: [DEVELOPER OR COMPANY NAME AS SHOWN ON GOOGLE PLAY]
+Privacy contact: [PUBLIC PRIVACY OR SUPPORT EMAIL]
+
+Scanning and local storage
+Folio lets you scan, import, edit, recognize text and store documents without creating an account. Folio accesses the camera to capture pages and opens photos or files you select. Scanned images, PDFs, extracted text, signatures and editing preferences may be stored in the app’s private storage. Core scan editing and text recognition run on your device. On supported Android devices, Google Play services provides the automatic scanner and may download its components. Optional app lock uses Android device authentication. Folio does not receive your fingerprint data or device PIN.
+
+Export and sharing
+If you export, print or share a PDF, Folio sends the selected file to the folder, print service or app you choose. Copies outside Folio are controlled by you or by the recipient and its service.
+
+Accounts and cloud services
+When account services are available and you create an account, Folio’s server processes your name, email address, password hash and session information to manage your account. If billing is available and you make a purchase, Folio may process purchase identifiers, verification tokens and subscription status with Google Play.
+
+If you sign in and enable cloud backup, Folio uploads eligible final PDFs and basic document metadata to the configured server and storage provider. Scans created in private ID mode are excluded from automatic backup. Turning backup off stops future automatic uploads. It does not delete previously backed-up files. Cloud PDF tools may upload an entire selected file for the requested task after you consent. Cloud processing and backup require a working connection to Folio’s services.
+
+Service providers and security
+Folio uses hosting and storage providers to operate cloud services when enabled. Google provides Android scanner components and, where enabled, Play purchase verification. [CONFIRM AND LIST OTHER PROVIDERS ACTUALLY USED IN PRODUCTION.] Local files rely on Android’s app storage protections. The server stores password hashes. The cloud backup implementation uses access checks, expiring download links and server-side storage encryption. Cloud backup is not end-to-end encrypted.
+
+Retention and deletion
+Local documents remain in Folio until removed or app data is cleared. Items moved to Trash can be restored. Clearing app storage or uninstalling removes app-local files, while copies exported elsewhere remain in those locations.
+
+When account services are available, go to Profile and select Delete cloud account to request deletion. The server disables access and queues deletion of account data and cloud files. Local files and exported copies remain separate. To request deletion without the app, visit [PUBLIC ACCOUNT DELETION URL].
+
+Account and cloud data retention: [INSERT ACTUAL RETENTION AND DELETION TIMEFRAMES FOR ACCOUNTS, BACKUP COPIES, LOGS AND PURCHASE RECORDS, INCLUDING ANY LEGAL RETENTION.]
+Temporary cloud processing file retention: [INSERT VERIFIED TIMEFRAME.]
+
+Contact
+For privacy questions or requests about your information, email [PUBLIC PRIVACY OR SUPPORT EMAIL].

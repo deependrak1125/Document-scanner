@@ -16,4 +16,12 @@ class PaperColorTest {
   whitenPaper(pixels,byteArrayOf(255.toByte()))
   assertEquals(180,pixels[1].toInt() and 255)
  }
+ @Test fun liftsDarkPaperWithoutClippingColoredInk() {
+  val pixels = byteArrayOf(60, 60, 60, -1, 180.toByte(), 90, 45, -1)
+  whitenPaper(pixels, byteArrayOf(60, 60))
+  assertEquals(255, pixels[0].toInt() and 255)
+  assertEquals(255, pixels[4].toInt() and 255)
+  assertEquals(128, pixels[5].toInt() and 255)
+  assertEquals(64, pixels[6].toInt() and 255)
+ }
 }

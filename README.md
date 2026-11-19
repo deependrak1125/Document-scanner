@@ -24,12 +24,18 @@ Set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` and `VITE_API_URL` in `apps/admi
 Mobile:
 
 ```sh
-cd apps/mobile
-npx expo prebuild --platform android
-npx expo run:android
-# For subsequent sessions:
-npx expo start --dev-client
+# From the project root (build, install and open the native app):
+npm run android
+# Choose a particular emulator/phone when several are connected:
+npm run android -- --device
+# Metro only, once the native development app is installed:
+npm start
 ```
+
+On macOS, `npm run android` selects installed JDK 17 automatically and finds the
+standard Android SDK directory. It always runs Expo from `apps/mobile`, avoiding
+the root `App` entry error. Native dependency changes require running this build
+command again; a Metro reload alone cannot add native modules.
 
 Run all Expo commands **inside `apps/mobile`**. Root commands `npm run dev:mobile`, `npm run dev:api`, and `npm run dev:admin` route to the correct workspace.
 

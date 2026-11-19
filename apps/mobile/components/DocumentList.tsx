@@ -1,3 +1,5 @@
+import { FolioIllustration } from "./FolioBrand";
+import { launchScanner } from "../features/scanner/launch";
 import * as Sharing from "expo-sharing";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { updateDocument } from "../database";
@@ -51,15 +53,15 @@ export function DocumentList({
         contentContainerStyle={{ gap: 10, paddingBottom: 22 }}
         columnWrapperStyle={grid ? { gap: 10 } : undefined}
         ListEmptyComponent={
-          <Card>
-            <Ionicons name="documents-outline" size={38} color={t.primary} />
+          <Card style={{ alignItems: "center", backgroundColor: t.surface }}>
+            <FolioIllustration />
             <Label size={21}>{emptyTitle}</Label>
             <Label muted>{emptyMessage}</Label>
             {showScanAction && (
               <Button
                 title="Scan a document"
                 icon="scan-outline"
-                onPress={() => router.push("/scan")}
+                onPress={launchScanner}
               />
             )}
           </Card>

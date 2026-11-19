@@ -45,7 +45,7 @@ export async function listDocuments(
     await db()
   ).getAllAsync<{ data: string }>(
     `SELECT data FROM documents WHERE deletedAt IS ${trash ? "NOT " : ""}NULL AND (title LIKE ? ESCAPE '\\' OR ocrText LIKE ? ESCAPE '\\') ORDER BY ${sort === "name" ? "title COLLATE NOCASE" : "updatedAt DESC"}`,
-    ...Array(2).fill(`%${query.replace(/[\\%_]/g, "\\$&")}%`),
+    ...Array(2).fill(`%${query.trim().replace(/[\\%_]/g, "\\$&")}%`),
   );
   const docs = rows.map((r) => JSON.parse(r.data) as LocalDocument);
   return sort === "size" ? docs.sort((a, b) => b.fileSize - a.fileSize) : docs;
@@ -174,10 +174,24 @@ export async function duplicateDocument(doc: LocalDocument) {
   );
 }
 export async function readBytes(uri: string) {
-  const { toByteArray } = await import("base64-js");
-  return toByteArray(
-    await FS.readAsStringAsync(uri, { encoding: FS.EncodingType.Base64 }),
-  );
+  try {
+    const { toByteArray } = await import("base64-js");
+    return toByteArray(
+      await FS.readAsStringAsync(uri, { encoding: FS.EncodingType.Base64 }),
+    );
+  } catch (legacyError) {
+    try {
+      // Expo Go's legacy reader can reject Android DocumentPicker cache files.
+      // The modern File API reads those binary files directly.
+      const { File } = await import("expo-file-system");
+      return await new File(uri).bytes();
+    } catch (modernError) {
+      throw new Error(
+        `Selected file could not be read. Choose the PDF again and retry. ${modernError instanceof Error ? modernError.message : legacyError instanceof Error ? legacyError.message : String(legacyError)}`,
+        { cause: modernError },
+      );
+    }
+  }
 }
 export async function folders() {
   return (await db()).getAllAsync<{ id: string; name: string }>(

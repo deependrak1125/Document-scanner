@@ -1,6 +1,10 @@
+import { FolioBrand, FolioIllustration } from "../../components/FolioBrand";
+import { Ionicons } from "@expo/vector-icons";
+import { launchScanner } from "../../features/scanner/launch";
 import { confirmReplaceDraft } from "../../features/scanner/draft";
 import {
   ScrollView,
+  Pressable,
   Text,
   View,
   RefreshControl,
@@ -8,21 +12,18 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Label, Card, Button, layout } from "../../components/ui";
-import { ActionCard, PageHeading, Notice } from "../../components/experience";
+import { Label, Button, layout } from "../../components/ui";
+import { ActionCard, Notice } from "../../components/experience";
 import { DocumentList } from "../../components/DocumentList";
 import { useLibrary } from "../../hooks/useLibrary";
 import { importImages } from "../../features/scanner";
 import { importPdf } from "../../features/documents/import";
 import { useDraft, useSettings } from "../../store";
-import { useAuth } from "../../features/auth";
 import { useTheme } from "../../theme";
 export default function Home() {
   const t = useTheme(),
     { documents: docs, loading, error, reload } = useLibrary(),
-    backup = useSettings((s) => s.backup),
-    user = useAuth((s) => s.user);
+    backup = useSettings((s) => s.backup);
   return (
     <SafeAreaView
       edges={["top", "left", "right"]}
@@ -30,7 +31,7 @@ export default function Home() {
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={layout.content}
+        contentContainerStyle={[layout.content, { padding: 14, gap: 12 }]}
         refreshControl={
           <RefreshControl
             refreshing={loading && docs.length > 0}
@@ -46,118 +47,55 @@ export default function Home() {
             alignItems: "center",
           }}
         >
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "900",
-              color: t.primary,
-              letterSpacing: -1.5,
-            }}
-          >
-            folio.
-          </Text>
+          <View style={{ flex: 1 }}>
+            <FolioBrand />
+          </View>
           <Button
-            title={user?.name.split(" ")[0] || "My space"}
+            title="Profile"
             secondary
             icon="person-circle-outline"
             onPress={() => router.push("/profile")}
           />
         </View>
-        <PageHeading
-          eyebrow="A little less paper"
-          title={
-            user
-              ? `Hello, ${user.name.split(" ")[0]}.`
-              : "Your paperwork,\nsorted."
-          }
-          subtitle="Scan it. Save it. Find it when you need it."
-        />
-        <View
-          style={{
-            backgroundColor: "#14345c",
-            borderRadius: 28,
-            padding: 24,
-            gap: 18,
-            overflow: "hidden",
-          }}
-        >
-          <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
-            <View style={{ flex: 1, gap: 10 }}>
-              <Text
-                style={{
-                  color: "#a8d7ff",
-                  fontSize: 11,
-                  fontWeight: "800",
-                  letterSpacing: 2,
-                }}
-              >
-                PAPER → PDF
-              </Text>
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 26,
-                  fontWeight: "700",
-                  lineHeight: 32,
-                }}
-              >
-                Scan. Save. Share.
-              </Text>
-              <Text style={{ color: "#c4d9f3", fontSize: 13, lineHeight: 20 }}>
-                Capture one page or a whole stack.
-              </Text>
-            </View>
-            <View
-              style={{
-                width: 80,
-                height: 106,
-                borderRadius: 10,
-                backgroundColor: "#f2f7ff",
-                transform: [{ rotate: "8deg" }],
-                padding: 13,
-                gap: 9,
-              }}
-            >
-              <Ionicons name="scan-outline" size={32} color="#1665d8" />
-              {[1, 2, 3].map((i) => (
-                <View
-                  key={i}
-                  style={{
-                    height: 4,
-                    width: i === 3 ? "55%" : "100%",
-                    backgroundColor: "#c6daf2",
-                    borderRadius: 2,
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-          <Button
-            title="Start scanning"
-            icon="scan-outline"
-            onPress={() => router.push("/scan")}
-          />
-        </View>
         <View style={layout.row}>
-          {[
-            { value: docs.length, label: "Documents" },
-            {
-              value: docs.filter((d) => d.favorite).length,
-              label: "Favorites",
-            },
-            {
-              value: `${(docs.reduce((n, d) => n + d.fileSize, 0) / 1048576).toFixed(1)} MB`,
-              label: "On device",
-            },
-          ].map((item) => (
-            <Card key={item.label} style={{ flex: 1, padding: 14, gap: 3 }}>
-              <Label size={21}>{item.value}</Label>
-              <Label muted size={11}>
-                {item.label}
-              </Label>
-            </Card>
-          ))}
+          <View style={{ flex: 1, gap: 6 }}>
+            <Label size={26}>Scan, edit & manage documents</Label>
+            <Label muted size={13}>
+              Capture pages and work with PDFs in one place.
+            </Label>
+          </View>
+          <FolioIllustration />
         </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={launchScanner}
+          style={({ pressed }) => ({
+            ...layout.row,
+            backgroundColor: t.primary,
+            borderRadius: 22,
+            padding: 13,
+            gap: 14,
+            opacity: pressed ? 0.8 : 1,
+            elevation: 3,
+          })}
+        >
+          <Ionicons
+            name="scan-outline"
+            color={t.dark ? t.bg : "white"}
+            size={32}
+          />
+          <View style={{ flex: 1 }}>
+            <TextOnBlue
+              title="Scan document"
+              subtitle="Capture, enhance and create PDF"
+            />
+          </View>
+          <Ionicons
+            name="arrow-forward-circle"
+            color={t.dark ? t.bg : "white"}
+            size={30}
+          />
+        </Pressable>
         <View
           style={{
             flexDirection: "row",
@@ -167,8 +105,9 @@ export default function Home() {
         >
           <ActionCard
             tile
+            short
             title="Photo to PDF"
-            description="Turn existing photos into a clean PDF"
+            description="Choose photos"
             icon="images-outline"
             onPress={async () => {
               if (!(await confirmReplaceDraft())) return;
@@ -182,8 +121,9 @@ export default function Home() {
           />
           <ActionCard
             tile
+            short
             title="Import PDF"
-            description="Keep your files together in one place"
+            description="Open a PDF file"
             icon="document-attach-outline"
             onPress={async () => {
               const doc = await importPdf();
@@ -194,6 +134,81 @@ export default function Home() {
                 });
             }}
           />
+        </View>
+        <View style={{ ...layout.row, justifyContent: "space-between" }}>
+          <Label size={21}>PDF Tools</Label>
+          <Button
+            title="See all"
+            compact
+            secondary
+            onPress={() => router.push("/tools")}
+          />
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            rowGap: 8,
+          }}
+        >
+          {(
+            [
+              ["Merge", "Merge PDF", "copy-outline", "#d93454"],
+              ["Compress", "Compress PDF", "contract-outline", "#12834d"],
+              ["Split", "Split / extract pages", "cut-outline", "#792be5"],
+              ["Sign", "Sign / annotate PDF", "create-outline", "#ba6412"],
+              ["Edit PDF", "PDF filters", "pencil-outline", "#0069db"],
+              ["Rotate", "Rotate PDF", "refresh-outline", "#792be5"],
+              ["Reorder", "Organize pages", "layers-outline", "#0073bf"],
+              [
+                "Protect",
+                "Protect / unlock PDF",
+                "lock-closed-outline",
+                "#d93454",
+              ],
+            ] as const
+          ).map(([label, tool, icon, color]) => (
+            <Pressable
+              key={tool}
+              accessibilityRole="button"
+              onPress={() =>
+                tool === "Merge PDF"
+                  ? router.push("/merge")
+                  : router.push({ pathname: "/tools", params: { tool } })
+              }
+              style={({ pressed }) => ({
+                width: "23.5%",
+                minHeight: 64,
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                paddingVertical: 8,
+                borderRadius: 16,
+                backgroundColor: t.surface,
+                borderWidth: 1,
+                borderColor: t.line,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View
+                style={{
+                  borderRadius: 12,
+                  padding: 7,
+                  backgroundColor: t.dark ? t.tint : color + "16",
+                }}
+              >
+                <Ionicons
+                  name={icon}
+                  size={22}
+                  color={t.dark ? t.primary : color}
+                />
+              </View>
+              <Text style={{ color: t.text, fontWeight: "700", fontSize: 11 }}>
+                {label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
         <View style={{ ...layout.row, justifyContent: "space-between" }}>
           <Label size={21}>Recently added</Label>
@@ -227,5 +242,16 @@ export default function Home() {
         />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function TextOnBlue({ title, subtitle }: { title: string; subtitle: string }) {
+  const t = useTheme();
+  const color = t.dark ? t.bg : "white";
+  return (
+    <>
+      <Text style={{ color, fontSize: 21, fontWeight: "800" }}>{title}</Text>
+      <Text style={{ color, fontSize: 12, marginTop: 3 }}>{subtitle}</Text>
+    </>
   );
 }

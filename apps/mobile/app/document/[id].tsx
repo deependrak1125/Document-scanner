@@ -1,20 +1,14 @@
-import { PDFDocument } from "pdf-lib";
-import { SignaturePlacement } from "../../components/SignaturePlacement";
-import {
-  pdfPlacement,
-  type Placement,
-} from "../../features/signature/placement";
+import { exportPdf } from "../../features/documents/export";
+import { PdfReader } from "../../components/PdfReader";
 import { TranslationPanel } from "../../components/TranslationPanel";
 import { confirmReplaceDraft } from "../../features/scanner/draft";
 import { Disclosure, PageHeading } from "../../components/experience";
-import { useTheme } from "../../theme";
 import { Screen } from "../../components/Screen";
 import { rasterizePdf } from "../../native/image";
 import * as Crypto from "expo-crypto";
 import { useCallback, useRef, useState } from "react";
-import { ScrollView, View, Alert } from "react-native";
+import { ScrollView, View, Alert, Platform } from "react-native";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import Pdf from "react-native-pdf";
 import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as Clipboard from "expo-clipboard";
@@ -24,7 +18,6 @@ import { NotoSansDevanagari_400Regular } from "@expo-google-fonts/noto-sans-deva
 import { editPdf, imagesToPdf } from "@folio/pdf";
 import type { LocalDocument } from "@folio/shared-types";
 import { Button, Card, Field, Label, layout } from "../../components/ui";
-import { SignaturePad } from "../../components/SignaturePad";
 import {
   getDocument,
   updateDocument,
@@ -32,8 +25,6 @@ import {
   readBytes,
   savePdf,
   folders,
-  setting,
-  setSetting,
 } from "../../database";
 import { recognize } from "../../features/ocr";
 import { keepLocalConflict } from "../../features/sync";
@@ -46,21 +37,18 @@ export default function DocumentScreen() {
   );
 }
 function DocumentScreenContent() {
-  const theme = useTheme();
-  const { id, panel } = useLocalSearchParams<{ id: string; panel?: string }>(),
+  const { id, panel, saved } = useLocalSearchParams<{
+      id: string;
+      panel?: string;
+      saved?: string;
+    }>(),
     [doc, setDoc] = useState<LocalDocument | null>(null),
     [title, setTitle] = useState(""),
     [allFolders, setFolders] = useState<{ id: string; name: string }[]>([]),
-    [dragging, setDragging] = useState(false),
-    [placement, setPlacement] = useState<Placement | null>(null),
-    [signature, setSignature] = useState(false),
-    [signatureUri, setSignatureUri] = useState<string | null>(null),
     [note, setNote] = useState(""),
     [pageIndex, setPageIndex] = useState(1),
     [x, setX] = useState("40"),
     [y, setY] = useState("40"),
-    [width, setWidth] = useState("180"),
-    [angle, setAngle] = useState("0"),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [ocrProgress, setOcrProgress] = useState("");
@@ -68,16 +56,11 @@ function DocumentScreenContent() {
   const reload = useCallback(() => {
     setLoading(true);
     setError("");
-    void Promise.all([
-      getDocument(id),
-      folders(),
-      setting<string | null>("signature", null),
-    ])
-      .then(([value, folderList, savedSignature]) => {
+    void Promise.all([getDocument(id), folders()])
+      .then(([value, folderList]) => {
         setDoc(value);
         setTitle(value?.title ?? "");
         setFolders(folderList);
-        setSignatureUri(savedSignature);
       })
       .catch((e) =>
         setError(
@@ -174,49 +157,14 @@ function DocumentScreenContent() {
     );
     router.push({ pathname: "/document/[id]", params: { id: copy.id } });
   }
-  async function annotation(kind: "signature" | "note") {
+  async function annotation() {
     const px = Number(x),
-      py = Number(y),
-      w = Number(width),
-      rotation = Number(angle);
-    if (
-      ![px, py, w, rotation].every(Number.isFinite) ||
-      px < 0 ||
-      py < 0 ||
-      w < 10 ||
-      w > 1000
-    )
+      py = Number(y);
+    if (![px, py].every(Number.isFinite) || px < 0 || py < 0)
       throw new Error("Enter valid placement coordinates.");
-    const source = await readBytes(current.uri);
-    const selectedPage = (await PDFDocument.load(source)).getPage(
-      pageIndex - 1,
-    );
-    const visualPlacement = placement
-      ? pdfPlacement(
-          placement,
-          selectedPage.getCropBox(),
-          selectedPage.getRotation().angle,
-        )
-      : null;
-    if (kind === "signature" && !visualPlacement)
-      throw new Error("Wait for the signature preview to load.");
-    const bytes = await editPdf(
-      source,
-      kind === "signature"
-        ? {
-            signature: {
-              png: await readBytes(signatureUri!),
-              page: pageIndex - 1,
-              x: px,
-              y: py,
-              width: w,
-              height: w / 2.5,
-              rotation,
-              ...visualPlacement,
-            },
-          }
-        : { notes: [{ page: pageIndex - 1, text: note, x: px, y: py }] },
-    );
+    const bytes = await editPdf(await readBytes(current.uri), {
+      notes: [{ page: pageIndex - 1, text: note, x: px, y: py }],
+    });
     const copy = await savePdf(
       `${current.title} annotated`,
       bytes,
@@ -227,7 +175,6 @@ function DocumentScreenContent() {
   }
   return (
     <ScrollView
-      scrollEnabled={!dragging}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       contentContainerStyle={layout.content}
@@ -236,54 +183,63 @@ function DocumentScreenContent() {
         title={doc.title}
         subtitle={`${doc.pageCount} pages · ${(doc.fileSize / 1048576).toFixed(2)} MB · ${doc.sensitive ? "Private document" : "Saved on device"}`}
       />
-      <Disclosure
-        title="Document name"
-        icon="pencil-outline"
-        description="Rename this file"
-      >
-        <Field
-          value={title}
-          onChangeText={setTitle}
-          placeholder="Document title"
-        />
-        <Button
-          title="Rename"
-          secondary
-          disabled={!title.trim() || title === doc.title}
-          onPress={() => patch({ title: title.trim() })}
-        />
-      </Disclosure>
-      <Pdf
-        source={{ uri: doc.uri, cache: false }}
-        style={{
-          height: 440,
-          width: "100%",
-          backgroundColor: theme.tint,
-          borderRadius: 16,
-        }}
-        onPageChanged={(p) => {
-          if (p !== pageIndex) {
-            setPlacement(null);
-            setPageIndex(p);
-          }
-        }}
-        onError={(e) => setError(String(e))}
-        trustAllCerts={false}
-        enablePaging
+      {saved === "1" && (
+        <Card>
+          <Label size={19}>PDF saved in Folio</Label>
+          <Label muted size={13}>
+            To keep a copy in Downloads or Files, tap Save to phone.
+          </Label>
+        </Card>
+      )}
+      <View style={layout.row}>
+        <View style={{ flex: 1 }}>
+          <Button
+            title={Platform.OS === "ios" ? "Save to Files" : "Save to phone"}
+            icon="download-outline"
+            onPress={async () => {
+              const result = await exportPdf(doc);
+              if (result === "saved")
+                Alert.alert(
+                  "PDF saved to phone",
+                  "Your PDF is in the folder you selected. Open your phone’s Files app to find it.",
+                );
+            }}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            title="Share PDF"
+            secondary
+            icon="share-outline"
+            onPress={() =>
+              Sharing.shareAsync(doc.uri, { mimeType: "application/pdf" })
+            }
+          />
+        </View>
+      </View>
+      <Label muted size={12}>
+        {Platform.OS === "android"
+          ? "Choose Downloads or another folder. If Android disables Downloads, create or choose a subfolder inside it."
+          : "Choose Save to Files in the share menu."}
+      </Label>
+      <PdfReader
+        uri={doc.uri}
+        count={doc.pageCount}
+        page={pageIndex}
+        onPage={setPageIndex}
       />
       {error && <Label>{error}</Label>}
-      <Label muted size={12}>
-        Page {pageIndex} of {doc.pageCount} · Pinch to zoom, swipe to navigate
-      </Label>
+      <Button
+        title="Sign PDF"
+        icon="create-outline"
+        onPress={() =>
+          router.push({
+            pathname: "/sign",
+            params: { id: doc.id, page: pageIndex },
+          })
+        }
+      />
       <View style={layout.wrap}>
-        <Button
-          title="Share PDF"
-          compact
-          icon="share-outline"
-          onPress={() =>
-            Sharing.shareAsync(doc.uri, { mimeType: "application/pdf" })
-          }
-        />
         <Button
           title="Print"
           compact
@@ -331,6 +287,23 @@ function DocumentScreenContent() {
           />
         }
       </View>
+      <Disclosure
+        title="Document name"
+        icon="pencil-outline"
+        description="Rename this file"
+      >
+        <Field
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Document title"
+        />
+        <Button
+          title="Rename"
+          secondary
+          disabled={!title.trim() || title === doc.title}
+          onPress={() => patch({ title: title.trim() })}
+        />
+      </Disclosure>
       <Disclosure
         title="Folder"
         icon="folder-outline"
@@ -463,43 +436,26 @@ function DocumentScreenContent() {
         description="Sign your PDF or add a text note"
       >
         <Button
-          title={signature ? "Close drawing pad" : "Draw a signature"}
-          secondary
-          onPress={() => setSignature(!signature)}
-        />
-        {signature && (
-          <SignaturePad
-            onDrawing={setDragging}
-            onSave={async (uri) => {
-              const target = `${FS.documentDirectory}folio-signature-${Crypto.randomUUID()}.png`;
-              await FS.copyAsync({ from: uri, to: target });
-              await setSetting("signature", target);
-              setSignatureUri(target);
-              setSignature(false);
-            }}
-          />
-        )}
-        {signatureUri && (
-          <SignaturePlacement
-            key={`${doc.id}:${pageIndex}:${signatureUri}`}
-            uri={doc.uri}
-            page={pageIndex - 1}
-            signature={signatureUri}
-            onChange={setPlacement}
-            onDrag={setDragging}
-          />
-        )}
-        <Button
-          title="Save signed PDF"
-          icon="checkmark-outline"
-          disabled={!signatureUri || !placement}
-          onPress={() => annotation("signature")}
+          title="Open signature workspace"
+          icon="create-outline"
+          onPress={() =>
+            router.push({
+              pathname: "/sign",
+              params: { id: doc.id, page: pageIndex },
+            })
+          }
         />
         <Disclosure
           title="Text note placement"
           icon="text-outline"
           description="Optional PDF coordinates and note"
         >
+          <PdfReader
+            uri={doc.uri}
+            count={doc.pageCount}
+            page={pageIndex}
+            onPage={setPageIndex}
+          />
           <Label muted size={12}>
             Placement uses PDF points from the bottom-left of page {pageIndex}.
             Save as a new copy and review placement before sharing.
@@ -511,19 +467,7 @@ function DocumentScreenContent() {
             <View style={{ flex: 1 }}>
               <Field value={y} onChangeText={setY} placeholder="Y" />
             </View>
-            <View style={{ flex: 1 }}>
-              <Field
-                value={width}
-                onChangeText={setWidth}
-                placeholder="Width"
-              />
-            </View>
           </View>
-          <Field
-            value={angle}
-            onChangeText={setAngle}
-            placeholder="Signature rotation (degrees)"
-          />
           <Field
             value={note}
             onChangeText={setNote}
@@ -534,7 +478,7 @@ function DocumentScreenContent() {
             title="Add text as new copy"
             secondary
             disabled={!note}
-            onPress={() => annotation("note")}
+            onPress={annotation}
           />
         </Disclosure>
       </Disclosure>

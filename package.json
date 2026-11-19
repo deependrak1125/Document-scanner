@@ -8,6 +8,9 @@
     "packages/*"
   ],
   "scripts": {
+    "android": "node scripts/android.mjs",
+    "start:android": "npm run android",
+    "start": "node scripts/start-mobile.mjs",
     "dev:api": "npm run dev -w @folio/api",
     "dev:admin": "npm run dev -w @folio/admin",
     "dev:mobile": "npm run start -w @folio/mobile",

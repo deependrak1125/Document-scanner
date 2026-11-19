@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { ScrollView, View, useWindowDimensions } from "react-native";
-import Pdf from "react-native-pdf";
 import { Screen } from "../components/Screen";
 import { Button, Label, layout } from "../components/ui";
 import { PageHeading, Notice } from "../components/experience";
 import { selectPdfs } from "../features/pdf";
+import { loadPdfPreview } from "../native/optionalPdf";
+
+const PdfPreview = loadPdfPreview();
 export default function Compare() {
   const [files, setFiles] = useState<({ uri: string; name: string } | null)[]>([
     null,
@@ -47,21 +49,28 @@ export default function Compare() {
               {file && (
                 <>
                   <Label numberOfLines={2}>{file.name}</Label>
-                  <Pdf
-                    key={file.uri}
-                    source={{ uri: file.uri, cache: false }}
-                    page={Math.min(page, counts[index] || 1)}
-                    style={{ width: "100%", height: sideBySide ? 420 : 300 }}
-                    trustAllCerts={false}
-                    enablePaging
-                    scrollEnabled={false}
-                    onLoadComplete={(count) =>
-                      setCounts((previous) =>
-                        previous.map((v, i) => (i === index ? count : v)),
-                      )
-                    }
-                    onError={(e) => setError(String(e))}
-                  />
+                  {PdfPreview ? (
+                    <PdfPreview
+                      key={file.uri}
+                      source={{ uri: file.uri, cache: false }}
+                      page={Math.min(page, counts[index] || 1)}
+                      style={{ width: "100%", height: sideBySide ? 420 : 300 }}
+                      trustAllCerts={false}
+                      enablePaging
+                      scrollEnabled={false}
+                      onLoadComplete={(count) =>
+                        setCounts((previous) =>
+                          previous.map((v, i) => (i === index ? count : v)),
+                        )
+                      }
+                      onError={(e) => setError(String(e))}
+                    />
+                  ) : (
+                    <Notice
+                      error
+                      message="PDF preview needs the Folio development build."
+                    />
+                  )}
                   {counts[index] > 0 && (
                     <Label muted size={12}>
                       {page <= counts[index]

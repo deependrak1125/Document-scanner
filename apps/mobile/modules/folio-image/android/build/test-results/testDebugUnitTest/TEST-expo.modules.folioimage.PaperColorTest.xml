@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="expo.modules.folioimage.PaperColorTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-04T07:56:53.835Z" hostname="Deependras-MacBook-Pro.local" time="0.002">
+<testsuite name="expo.modules.folioimage.PaperColorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-18T12:37:27.035Z" hostname="Deependras-MacBook-Pro.local" time="0.006">
   <properties/>
-  <testcase name="doesNotTurnPaleColoredInkIntoWhite" classname="expo.modules.folioimage.PaperColorTest" time="0.0"/>
-  <testcase name="whitensGrayPaperAndKeepsColoredInk" classname="expo.modules.folioimage.PaperColorTest" time="0.001"/>
+  <testcase name="doesNotTurnPaleColoredInkIntoWhite" classname="expo.modules.folioimage.PaperColorTest" time="0.004"/>
+  <testcase name="whitensGrayPaperAndKeepsColoredInk" classname="expo.modules.folioimage.PaperColorTest" time="0.0"/>
+  <testcase name="liftsDarkPaperWithoutClippingColoredInk" classname="expo.modules.folioimage.PaperColorTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>
   <system-err><![CDATA[]]></system-err>
 </testsuite>

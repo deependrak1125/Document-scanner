@@ -1,3 +1,4 @@
+import { launchScanner } from "../../features/scanner/launch";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,7 +26,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: t.surface,
           borderTopColor: t.line,
-          height: 64 + bottomPadding,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          height: 62 + bottomPadding,
           paddingBottom: bottomPadding,
           paddingTop: 10,
         },
@@ -35,9 +38,11 @@ export default function TabLayout() {
               route.name === "scan"
                 ? {
                     backgroundColor: t.primary,
-                    borderRadius: 16,
-                    width: 48,
-                    height: 40,
+                    borderRadius: 28,
+                    width: 54,
+                    height: 54,
+                    transform: [{ translateY: -9 }],
+                    elevation: 4,
                     alignItems: "center",
                     justifyContent: "center",
                   }
@@ -70,9 +75,18 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
       <Tabs.Screen name="documents" options={{ title: "Documents" }} />
-      <Tabs.Screen name="scan" options={{ title: "Scan" }} />
+      <Tabs.Screen
+        name="scan"
+        options={{ title: "Scan" }}
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            void launchScanner();
+          },
+        }}
+      />
       <Tabs.Screen name="tools" options={{ title: "PDF tools" }} />
-      <Tabs.Screen name="profile" options={{ title: "Settings" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
 }

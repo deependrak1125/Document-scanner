@@ -72,6 +72,7 @@ export function Button({
   disabled = false,
   icon,
   compact = false,
+  toolbar = false,
 }: {
   title: string;
   onPress: () => void | Promise<unknown>;
@@ -79,6 +80,7 @@ export function Button({
   danger?: boolean;
   disabled?: boolean;
   compact?: boolean;
+  toolbar?: boolean;
   icon?: React.ComponentProps<typeof Ionicons>["name"];
 }) {
   const t = useTheme();
@@ -110,7 +112,8 @@ export function Button({
       style={({ pressed }) => ({
         minHeight: compact ? 60 : 52,
         borderRadius: 16,
-        paddingHorizontal: compact ? 10 : 16,
+        flex: toolbar ? 1 : undefined,
+        paddingHorizontal: toolbar ? 3 : compact ? 10 : 16,
         paddingVertical: compact ? 8 : 12,
         flexDirection: compact ? "column" : "row",
         alignItems: "center",
@@ -175,12 +178,14 @@ export function Field({
   placeholder,
   secureTextEntry = false,
   multiline = false,
+  keyboardType,
 }: {
   value: string;
   onChangeText: (s: string) => void;
   placeholder: string;
   secureTextEntry?: boolean;
   multiline?: boolean;
+  keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"];
 }) {
   const t = useTheme();
   const [focused, setFocused] = useState(false);
@@ -222,7 +227,7 @@ export function Field({
           accessibilityLabel={placeholder}
           placeholder={search ? placeholder : ""}
           placeholderTextColor={t.muted}
-          keyboardType={email ? "email-address" : "default"}
+          keyboardType={keyboardType ?? (email ? "email-address" : "default")}
           autoCorrect={!secureTextEntry && !email && !search}
           value={value}
           onChangeText={onChangeText}

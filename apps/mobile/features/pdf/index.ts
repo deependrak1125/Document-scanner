@@ -1,4 +1,7 @@
 import * as Picker from "expo-document-picker";
+import * as Crypto from "expo-crypto";
+import * as FS from "expo-file-system/legacy";
+import { Platform } from "react-native";
 import { PDFDocument } from "pdf-lib";
 import {
   editPdf,
@@ -10,13 +13,40 @@ import { readBytes, savePdf } from "../../database";
 export async function selectPdfs(multiple = false) {
   const result = await Picker.getDocumentAsync({
     type: "application/pdf",
-    copyToCacheDirectory: true,
+    // Android grants read access to the selected content URI. Copy that URI
+    // directly into our own cache before the picker permission expires.
+    copyToCacheDirectory: Platform.OS !== "android",
     multiple,
   });
   if (result.canceled) return [];
   if (result.assets.some((a) => (a.size ?? 0) > 30 * 1048576))
     throw new Error("Choose PDFs under 30 MB for in-memory editing.");
-  return result.assets;
+  const copies = [];
+  try {
+    for (const asset of result.assets) {
+      const uri = `${FS.cacheDirectory}folio-import-${Crypto.randomUUID()}.pdf`;
+      copies.push(uri);
+      await FS.copyAsync({ from: asset.uri, to: uri });
+      const info = await FS.getInfoAsync(uri);
+      if (!info.exists || !info.size)
+        throw new Error(
+          `The selected PDF “${asset.name}” is empty or unavailable.`,
+        );
+      if (info.size > 30 * 1048576)
+        throw new Error("Choose PDFs under 30 MB for in-memory editing.");
+      // The returned URI now belongs to Folio, so later actions can read it.
+      asset.uri = uri;
+      asset.size = info.size;
+    }
+    return result.assets;
+  } catch (error) {
+    await Promise.all(
+      copies.map((uri) =>
+        FS.deleteAsync(uri, { idempotent: true }).catch(() => {}),
+      ),
+    );
+    throw error;
+  }
 }
 export async function mergeFiles() {
   const files = await selectPdfs(true);
@@ -76,29 +106,86 @@ export async function compressPdfLocally(
   uri: string,
   name: string,
   onProgress: (message: string) => void = () => {},
+  targetBytes?: number,
 ) {
+  if (
+    targetBytes !== undefined &&
+    (!Number.isSafeInteger(targetBytes) || targetBytes < 1024)
+  )
+    throw new Error("Enter a target of at least 1 KB.");
   const { manipulateAsync, SaveFormat } =
     await import("expo-image-manipulator");
   const { imagesToPdf } = await import("@folio/pdf");
-  const pages = await pdfToScanPages(uri, onProgress);
-  const images = [];
-  for (const [index, page] of pages.entries()) {
-    onProgress(`Compressing page ${index + 1} of ${pages.length}…`);
-    const image = await manipulateAsync(
-      page.uri,
-      [
-        {
-          resize: page.width > page.height ? { width: 1600 } : { height: 1600 },
-        },
-      ],
-      { compress: 0.55, format: SaveFormat.JPEG },
-    );
-    images.push({ bytes: await readBytes(image.uri), type: "jpg" as const });
-  }
-  const result = await imagesToPdf(images, { paper: "Auto", margin: 0 });
-  if (result.length >= (await readBytes(uri)).length)
+  const original = await readBytes(uri);
+  if (targetBytes !== undefined && original.length <= targetBytes)
     throw new Error(
-      "This PDF is already smaller than the compressed image copy. Your original has been kept.",
+      "This PDF already fits your target size. Use the original for best quality.",
     );
-  return savePdf(`${name} compressed`, result);
+  const pages = await pdfToScanPages(uri, onProgress);
+  const profiles =
+    targetBytes === undefined
+      ? [[1600, 0.55]]
+      : [
+          [1800, 0.75],
+          [1600, 0.55],
+          [1200, 0.45],
+          [900, 0.35],
+          [640, 0.28],
+        ];
+  let smallest = original.length;
+  try {
+    for (const [edge, quality] of profiles) {
+      const images = [];
+      for (const [index, page] of pages.entries()) {
+        onProgress(`Compressing page ${index + 1} of ${pages.length}…`);
+        const resize =
+          Math.max(page.width, page.height) > edge
+            ? [
+                {
+                  resize:
+                    page.width > page.height
+                      ? { width: edge }
+                      : { height: edge },
+                },
+              ]
+            : [];
+        const image = await manipulateAsync(page.uri, resize, {
+          compress: quality,
+          format: SaveFormat.JPEG,
+        });
+        try {
+          images.push({
+            bytes: await readBytes(image.uri),
+            type: "jpg" as const,
+          });
+        } finally {
+          if (image.uri !== page.uri)
+            await FS.deleteAsync(image.uri, { idempotent: true }).catch(
+              () => {},
+            );
+        }
+      }
+      const result = await imagesToPdf(images, { paper: "Auto", margin: 0 });
+      smallest = Math.min(smallest, result.length);
+      if (
+        result.length < original.length &&
+        (targetBytes === undefined || result.length <= targetBytes)
+      )
+        return await savePdf(
+          `${name.replace(/\.pdf$/i, "")} compressed`,
+          result,
+        );
+    }
+    throw new Error(
+      targetBytes === undefined
+        ? "This PDF is already smaller than the compressed image copy."
+        : `Could not reach that target while keeping pages readable. Try at least ${Math.ceil(smallest / 1024)} KB.`,
+    );
+  } finally {
+    await Promise.all(
+      pages.map((page) =>
+        FS.deleteAsync(page.uri, { idempotent: true }).catch(() => {}),
+      ),
+    );
+  }
 }

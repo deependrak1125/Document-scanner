@@ -124,6 +124,7 @@ describe("SQLite and filesystem document lifecycle", () => {
     await repo.savePdf("Another file", await fixture());
     await repo.updateDocument(doc.id, { favorite: true });
     expect(await repo.listDocuments("%")).toHaveLength(1);
+    expect((await repo.listDocuments(" 100% complete "))[0].id).toBe(doc.id);
     expect(
       sql.prepare("SELECT revision FROM outbox WHERE documentId=?").get(doc.id)
         ?.revision,

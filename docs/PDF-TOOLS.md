@@ -39,4 +39,4 @@ https://developers.google.com/ml-kit/language/translation/ios
 
 PDF-to-Office reconstruction, legacy Office formats, PDF/A conversion, PDF repair, automatic form detection/creation, certified electronic signatures, permanent redaction, automatic difference detection and AI summarization are not implemented. No inert buttons are presented for them. Cloud password tools require a configured service; they are not offline tools. Store/provider and physical-device gates in FEATURES.md remain in effect.
 
-Android emulator verification is now in progress; see VERIFICATION.md for the exact completed flows. Emulator checks do not certify physical-camera quality, translation accuracy or production readiness. iOS remains uncompiled on this host.
+Android emulator verification covers the saved-PDF, filter and OCR flows; see VERIFICATION.md for the exact completed flows. Emulator checks do not certify physical-camera quality, translation accuracy or production readiness. iOS remains uncompiled on this host.

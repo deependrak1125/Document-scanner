@@ -1,8 +1,10 @@
+import { FolioBrand, FolioIllustration } from "../../components/FolioBrand";
 import { useSyncStatus } from "../../hooks/useAutoSync";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ScrollView, View, Switch, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { listDocuments } from "../../database";
+import { router, useFocusEffect } from "expo-router";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as FS from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -14,7 +16,7 @@ import { useTheme } from "../../theme";
 import {
   PageHeading,
   Chip,
-  SectionHeading,
+  Disclosure,
   IconBadge,
 } from "../../components/experience";
 export default function Profile() {
@@ -24,17 +26,45 @@ export default function Profile() {
     user = useAuth((s) => s.user),
     [progress, setProgress] = useState(""),
     [subscription, setSubscription] = useState<string | null>(null);
+  const [storage, setStorage] = useState<{
+    count: number;
+    bytes: number;
+  } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void listDocuments()
+        .then((docs) => {
+          if (active)
+            setStorage({
+              count: docs.length,
+              bytes: docs.reduce((sum, d) => sum + d.fileSize, 0),
+            });
+        })
+        .catch(() => {
+          if (active) setStorage(null);
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
   return (
     <SafeAreaView
       edges={["top", "left", "right"]}
       style={{ flex: 1, backgroundColor: t.bg }}
     >
       <ScrollView contentContainerStyle={layout.content}>
-        <PageHeading
-          eyebrow="Just the way you like it"
-          title="Settings"
-          subtitle="Your account, your preferences, your privacy."
-        />
+        <FolioBrand />
+        <View style={layout.row}>
+          <View style={{ flex: 1 }}>
+            <PageHeading
+              title="Profile"
+              subtitle="Your documents. Your preferences."
+            />
+          </View>
+          <FolioIllustration kind="profile" />
+        </View>
         <Card>
           <View style={layout.row}>
             <IconBadge icon="person-outline" large />
@@ -63,7 +93,35 @@ export default function Profile() {
           )}
         </Card>
         <Card>
-          <SectionHeading title="Cloud backup" icon="cloud-upload-outline" />
+          <View style={{ ...layout.row, justifyContent: "space-between" }}>
+            <View>
+              <Label size={24}>{storage?.count ?? "—"}</Label>
+              <Label muted size={12}>
+                Saved documents
+              </Label>
+            </View>
+            <View>
+              <Label size={24}>
+                {storage ? `${(storage.bytes / 1048576).toFixed(1)} MB` : "—"}
+              </Label>
+              <Label muted size={12}>
+                PDF storage on device
+              </Label>
+            </View>
+          </View>
+          <Button
+            title="Open my documents"
+            icon="folder-open-outline"
+            secondary
+            onPress={() => router.push("/(tabs)/documents")}
+          />
+        </Card>
+        <Label size={19}>Settings</Label>
+        <Disclosure
+          title="Cloud backup"
+          icon="cloud-upload-outline"
+          description="Optional backup · ID scans stay on device"
+        >
           <Label muted>
             When enabled, Folio automatically uploads ordinary documents to your
             account while the app is open. ID scans stay local. Disable backup
@@ -96,9 +154,12 @@ export default function Profile() {
             onPress={() => sync(setProgress)}
           />
           <Label muted>{progress || autoSyncStatus}</Label>
-        </Card>
-        <Card>
-          <SectionHeading title="Make it yours" icon="color-palette-outline" />
+        </Disclosure>
+        <Disclosure
+          title="Appearance & security"
+          icon="color-palette-outline"
+          description="Theme, scan quality and app lock"
+        >
           <Label muted size={12}>
             APPEARANCE
           </Label>
@@ -161,9 +222,12 @@ export default function Profile() {
               if (result.success) await settings.change("lock", !settings.lock);
             }}
           />
-        </Card>
-        <Card>
-          <SectionHeading title="Subscription" icon="sparkles-outline" />
+        </Disclosure>
+        <Disclosure
+          title="Plan & purchases"
+          icon="sparkles-outline"
+          description="Check your plan or restore purchases"
+        >
           <Button
             title="Plans & restore purchases"
             icon="sparkles-outline"
@@ -193,12 +257,12 @@ export default function Profile() {
             />
           )}
           {subscription && <Label>{subscription}</Label>}
-        </Card>
-        <Card>
-          <SectionHeading
-            title="Privacy, by design"
-            icon="shield-checkmark-outline"
-          />
+        </Disclosure>
+        <Disclosure
+          title="Privacy & storage"
+          icon="shield-checkmark-outline"
+          description="Understand where your documents are stored"
+        >
           <Label muted>
             Folio stores scans in app-private storage. Cloud backup is optional.
             OCR runs on this device. No document contents are sent to
@@ -209,7 +273,7 @@ export default function Profile() {
             verify a cloud backup first. App lock protects access through Folio;
             it does not independently encrypt each local PDF.
           </Label>
-        </Card>
+        </Disclosure>
         {user && (
           <>
             <Button
@@ -255,7 +319,7 @@ export default function Profile() {
           </>
         )}
         <Label muted size={12}>
-          Folio 0.1.0 · Development build
+          Folio · Made for your documents
         </Label>
       </ScrollView>
     </SafeAreaView>

@@ -77,7 +77,7 @@ function LoginContent() {
         {errors.password && <Label>{errors.password.message}</Label>}
         <Button
           icon="arrow-forward-outline"
-          title={register ? "Create account" : "Sign in"}
+          title={register ? "Create free account" : "Sign in"}
           onPress={handleSubmit(async (values) => {
             if (register && !name.trim()) throw new Error("Enter your name.");
             await signIn(
@@ -95,7 +95,7 @@ function LoginContent() {
           secondary
           onPress={() => setRegister(!register)}
         />
-        <Notice message="Scanning is free without an account. You choose whether to enable cloud backup." />
+        <Notice message="Email and password sign-in does not require SMS. Scanning is free without an account." />
       </ScrollView>
     </KeyboardAvoidingView>
   );

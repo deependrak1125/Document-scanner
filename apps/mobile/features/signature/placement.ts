@@ -4,6 +4,29 @@ export type Placement = {
   width: number;
   height: number;
 };
+export function movePlacement(
+  rect: Placement,
+  dx: number,
+  dy: number,
+): Placement {
+  return {
+    ...rect,
+    left: Math.max(0, Math.min(1 - rect.width, rect.left + dx)),
+    top: Math.max(0, Math.min(1 - rect.height, rect.top + dy)),
+  };
+}
+export function resizePlacement(
+  rect: Placement,
+  delta: number,
+  heightRatio: number,
+): Placement {
+  const maxWidth = Math.min(1 - rect.left, (1 - rect.top) / heightRatio);
+  const width = Math.min(
+    maxWidth,
+    Math.max(Math.min(0.12, maxWidth), rect.width + delta),
+  );
+  return { ...rect, width, height: width * heightRatio };
+}
 /** Map a top-left visual rectangle into the PDF crop box, including page rotation. */
 export function pdfPlacement(
   rect: Placement,

@@ -1,11 +1,13 @@
+import { WatermarkEditor } from "../../components/WatermarkEditor";
+import { PdfFilePreview } from "../../components/PdfFilePreview";
 import { useDraft } from "../../store";
 import { importImages } from "../../features/scanner";
 import { confirmReplaceDraft } from "../../features/scanner/draft";
 import { rasterizePdf } from "../../native/image";
-import { useState } from "react";
-import { ScrollView, View, Alert } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, View, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { File, Paths } from "expo-file-system";
 import { fetch as expoFetch } from "expo/fetch";
 import * as Sharing from "expo-sharing";
@@ -30,11 +32,18 @@ import {
   ActionCard,
 } from "../../components/experience";
 export default function Tools() {
+  const [compressFile, setCompressFile] = useState<{
+    name: string;
+    uri: string;
+  } | null>(null);
+  const [target, setTarget] = useState("");
+  const [unit, setUnit] = useState<"KB" | "MB">("KB");
+  const { tool: shortcut } = useLocalSearchParams<{ tool?: string }>();
   const user = useAuth((s) => s.user);
   const t = useTheme(),
     [file, setFile] = useState<{ uri: string; name: string } | null>(null),
     [selection, setSelection] = useState("1"),
-    [watermark, setWatermark] = useState("CONFIDENTIAL"),
+    [draggingStamp, setDraggingStamp] = useState(false),
     [password, setPassword] = useState(""),
     [consent, setConsent] = useState(false),
     [catalog, setCatalog] = useState(true),
@@ -43,6 +52,9 @@ export default function Tools() {
     [progress, setProgress] = useState(""),
     [deletingPages, setDeletingPages] = useState(false),
     [section, setSection] = useState<"pages" | "watermark" | "cloud">("pages");
+  useEffect(() => {
+    if (shortcut) setCatalog(true);
+  }, [shortcut]);
   const open = (id: string) =>
     router.push({ pathname: "/document/[id]", params: { id } });
   async function chooseFile() {
@@ -61,7 +73,10 @@ export default function Tools() {
       chosen.name.replace(/\.pdf$/i, ""),
       await readBytes(chosen.uri),
     );
-    router.push({ pathname: "/document/[id]", params: { id: doc.id, panel } });
+    router.push({
+      pathname: panel === "sign" ? "/sign" : "/document/[id]",
+      params: { id: doc.id, panel },
+    });
   }
   async function imageEditor() {
     if (!(await confirmReplaceDraft())) return;
@@ -137,13 +152,9 @@ export default function Tools() {
       icon: "contract-outline" as const,
       onPress: async () => {
         const chosen = await chooseFile();
-        if (!chosen) return;
-        try {
-          open(
-            (await compressPdfLocally(chosen.uri, chosen.name, setProgress)).id,
-          );
-        } finally {
-          setProgress("");
+        if (chosen) {
+          setTarget("");
+          setCompressFile(chosen);
         }
       },
     },
@@ -286,7 +297,7 @@ export default function Tools() {
   const matches = (tool: (typeof tools)[number]) =>
     `${tool.title} ${tool.description}`
       .toLowerCase()
-      .includes(toolQuery.toLowerCase());
+      .includes((shortcut ?? toolQuery).toLowerCase());
   async function edit(options: Parameters<typeof editFile>[2]) {
     if (!file) throw new Error("Choose a PDF first.");
     const doc = await editFile(
@@ -346,7 +357,82 @@ export default function Tools() {
       edges={["top", "left", "right"]}
       style={{ flex: 1, backgroundColor: t.bg }}
     >
+      <Modal
+        visible={!!compressFile}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!progress) setCompressFile(null);
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            padding: 20,
+            backgroundColor: "#0007",
+          }}
+        >
+          <Card>
+            <Label size={21}>Compress PDF</Label>
+            <Label muted>
+              Enter a maximum size or leave it blank for automatic compression.
+              Output is an image PDF.
+            </Label>
+            <Field
+              value={target}
+              onChangeText={setTarget}
+              placeholder="Maximum size"
+              keyboardType="decimal-pad"
+            />
+            <View style={layout.wrap}>
+              {(["KB", "MB"] as const).map((value) => (
+                <Chip
+                  key={value}
+                  title={value}
+                  selected={unit === value}
+                  onPress={() => setUnit(value)}
+                />
+              ))}
+            </View>
+            {!!progress && <Label>{progress}</Label>}
+            <Button
+              title="Compress & save"
+              disabled={!!progress}
+              onPress={async () => {
+                if (!compressFile) return;
+                const size = target.trim()
+                  ? Math.floor(
+                      Number(target.replace(",", ".")) *
+                        (unit === "MB" ? 1048576 : 1024),
+                    )
+                  : undefined;
+                setProgress("Preparing PDF…");
+                try {
+                  const doc = await compressPdfLocally(
+                    compressFile.uri,
+                    compressFile.name,
+                    setProgress,
+                    size,
+                  );
+                  setCompressFile(null);
+                  open(doc.id);
+                } finally {
+                  setProgress("");
+                }
+              }}
+            />
+            <Button
+              title="Cancel"
+              secondary
+              disabled={!!progress}
+              onPress={() => setCompressFile(null)}
+            />
+          </Card>
+        </View>
+      </Modal>
       <ScrollView
+        scrollEnabled={!draggingStamp}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={layout.content}
       >
@@ -358,8 +444,11 @@ export default function Tools() {
               subtitle="Choose a tool. Pick your file. Save a new copy."
             />
             <Field
-              value={toolQuery}
-              onChangeText={setToolQuery}
+              value={shortcut ?? toolQuery}
+              onChangeText={(value) => {
+                router.setParams({ tool: undefined });
+                setToolQuery(value);
+              }}
               placeholder="Search tools…"
             />
             {!!progress && <Notice message={progress} />}
@@ -372,13 +461,18 @@ export default function Tools() {
                 <Chip
                   key={name}
                   title={name}
-                  selected={category === name}
-                  onPress={() => setCategory(name)}
+                  selected={(shortcut ? "All" : category) === name}
+                  onPress={() => {
+                    router.setParams({ tool: undefined });
+                    setCategory(name);
+                  }}
                 />
               ))}
             </ScrollView>
             {Object.entries(categories)
-              .filter(([name]) => category === "All" || category === name)
+              .filter(
+                ([name]) => shortcut || category === "All" || category === name,
+              )
               .map(([name, titles]) => {
                 const items = tools.filter(
                   (tool) => titles.includes(tool.title) && matches(tool),
@@ -419,7 +513,8 @@ export default function Tools() {
             {!tools.some(
               (tool) =>
                 matches(tool) &&
-                (category === "All" ||
+                (shortcut ||
+                  category === "All" ||
                   categories[category]?.includes(tool.title)),
             ) && (
               <Notice message="No matching tools. Try PDF, translate, crop or merge." />
@@ -447,14 +542,11 @@ export default function Tools() {
             <Button
               title={file ? `Selected: ${file.name}` : "Choose PDF to edit"}
               secondary
-              onPress={async () => {
-                const files = await selectPdfs();
-                if (files[0]) {
-                  setFile(files[0]);
-                  setConsent(false);
-                }
-              }}
+              onPress={chooseFile}
             />
+            {file && section !== "watermark" && (
+              <PdfFilePreview key={file.uri} uri={file.uri} />
+            )}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -542,21 +634,13 @@ export default function Tools() {
                 </View>
               </Card>
             )}
-            {section === "watermark" && (
-              <Card>
-                <Label size={19}>Make it yours</Label>
-                <Field
-                  value={watermark}
-                  onChangeText={setWatermark}
-                  placeholder="Watermark text"
-                />
-                <Button
-                  title="Add watermark"
-                  secondary
-                  disabled={!file || !watermark}
-                  onPress={() => edit({ watermark })}
-                />
-              </Card>
+            {section === "watermark" && file && (
+              <WatermarkEditor
+                key={file.uri}
+                file={file}
+                onSaved={open}
+                onDrag={setDraggingStamp}
+              />
             )}
             {section === "cloud" && (
               <Card>

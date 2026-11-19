@@ -1,5 +1,10 @@
 # Platform and service setup
 
+From the project root, run `npm run android` to build, install and open the native
+Android app. On macOS the launcher selects JDK 17 and the standard Android SDK
+automatically. Use `npm run android -- --device` to select a device. `npm start`
+starts only Metro for an already-installed development build.
+
 ## Local services
 
 Run the root README commands. MongoDB must be a replica set because quota, refresh, audit and sync operations use transactions. The supplied development Compose file bootstraps a single-node replica set, Redis, and a LocalStack S3 bucket with AES256 encryption. `directConnection=true` in the host development Mongo URI avoids Docker-hostname discovery problems. Production requires authenticated MongoDB, encrypted connections and backups; do not reuse the unsecured local database configuration.
@@ -9,6 +14,42 @@ Set a random `JWT_SECRET` of at least 32 characters. Never put this value or pro
 For AWS S3, omit `S3_ENDPOINT`, use workload IAM credentials or restricted S3 credentials, enable block-public-access and default encryption. Allow only the application bucket. Add lifecycle cleanup for abandoned staging objects; keep verified document files until explicit account deletion. A compatible provider must support conditional server-side copy, encrypted writes and signed PUT/GET. The signed endpoint must be reachable by the phone as well as the API. Clients supply returned signed headers exactly.
 
 `npm run dev:api` reads the root `.env`. Mobile and admin read their own workspace `.env` files. Keep Android development traffic local; use HTTPS for deployed services.
+
+Start the mobile Metro server from the workspace root with `npm start` (or
+`npm run dev:mobile`). The equivalent direct command must be run inside the
+mobile workspace:
+
+```sh
+cd apps/mobile
+npx expo start --dev-client
+```
+
+For the full native scanner/OCR/PDF experience, build and install the
+development client in a second terminal:
+
+```sh
+cd apps/mobile
+npx expo run:android
+```
+
+Then keep Metro running with `npm start` from the workspace root. Open the
+**Folio** app icon after installation. Scanning the QR code with Expo Go opens
+a different Android app that does not contain Folio's PDF preview, OpenCV
+filters, camera and OCR modules. Folio displays a setup notice there instead
+of offering controls that cannot work.
+
+If `DocumentScanner could not be found` appears or `Open scanner` says the
+automatic scanner is unavailable, reinstall the latest Folio native APK or
+rebuild with `npx expo run:android`. A Metro reload cannot add missing native
+modules to an older app installation. The automatic scanner detects/crops pages
+while capturing; Folio camera is an explicit alternative that detects/crops
+after a shutter tap and applies Clean color.
+
+Running `npx expo start` from the workspace root makes Expo look for a root
+`App.tsx`/`App.js`, which is not the Folio app and causes an `Unable to resolve
+"../../App"` error. Expo Go also cannot load Folio's native camera, OCR and PDF
+modules; use the Folio development APK or standalone release APK for those
+features. A standalone release APK runs without Metro.
 
 ## Android
 
@@ -89,3 +130,20 @@ docker build -f infrastructure/docker/Dockerfile.api -t folio-api .
 Supply runtime secrets via your secret manager. Deploy behind HTTPS (example `infrastructure/deployment/Caddyfile`). Build and serve `apps/admin/dist` with SPA fallback. Limit `ADMIN_ORIGIN` to the deployed dashboard. Configure proxy identity/rate limits intentionally; the API does not blindly trust forwarded IP headers. For multiple replicas, move rate limits to a shared Redis store and move PDF processing to isolated workers.
 
 Back up MongoDB and the object bucket; rehearse restore. Configure object lifecycle retention and monitoring for failed deletion jobs. Local mobile files must remain intact even when cloud operations fail. No deployment or store publication was performed by this implementation.
+
+### Save a PDF to Downloads / Files
+
+**Save in app** keeps the PDF in Folio's private library. To create a copy visible
+in your phone's file manager, use **Save to phone** on the review or document
+screen. On Android, choose a folder in the system picker, then tap **Use this
+folder** and allow access. Some Android versions disallow the Downloads root;
+create/select a subfolder such as `Downloads/Folio` instead. Cancelling the picker
+leaves the library copy safe. On iOS, choose **Save to Files** in the share sheet.
+
+### Metro starts with a missing `../../App`
+
+The repository root is not an Expo app. Stop the old Metro process with Ctrl+C.
+From the repository root run `npm start -- --clear` (for an already installed
+native development build), or `npm run android` to build/install native changes.
+Direct Expo CLI commands must run inside `apps/mobile`. Root Expo commands now
+stop with these instructions instead of selecting Expo's default `AppEntry.js`.

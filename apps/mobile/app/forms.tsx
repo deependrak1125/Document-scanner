@@ -1,3 +1,4 @@
+import { PdfFilePreview } from "../components/PdfFilePreview";
 import { useState } from "react";
 import { ScrollView, View, Switch } from "react-native";
 import { router } from "expo-router";
@@ -46,7 +47,12 @@ export default function Forms() {
             }
           }}
         />
-        {file && <Label size={18}>{file.name}</Label>}
+        {file && (
+          <>
+            <Label size={18}>{file.name}</Label>
+            <PdfFilePreview key={file.uri} uri={file.uri} />
+          </>
+        )}
         {loaded && !fields.length && (
           <Notice message="This PDF has no interactive form fields. A scanned form is an image; automatic field detection and form creation are not available here." />
         )}

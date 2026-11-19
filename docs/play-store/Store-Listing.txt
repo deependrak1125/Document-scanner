@@ -1,0 +1,38 @@
+GOOGLE PLAY STORE LISTING
+Package ID: com.foliodocument.app
+Suggested category: Productivity
+
+App name
+Folio: PDF Scanner & Editor
+
+Short description
+Scan documents, clean up pages, and edit, sign or organize PDFs on your phone.
+
+Full description
+Turn receipts, notes, forms and paperwork into PDFs with Folio. Scan with your camera, import photos, or open a PDF you already have. Review each page before saving and keep your documents organized on your phone.
+
+Scan and clean up pages
+• Capture a single page or build a multipage scan.
+• Use automatic edge detection and cropping on supported Android devices.
+• Retake a page, adjust its corners, rotate it, or change the page order.
+• Choose Clean Color, grayscale or black-and-white filters. Fine-tune brightness and contrast with a visible page preview.
+
+Work with PDFs
+• Merge PDFs, extract selected pages, or reorder and rotate pages.
+• Add page numbers or drag text watermarks into position.
+• Draw a handwritten signature, place it on the page and save a signed copy.
+• Compress a PDF to an image-based copy with an optional KB or MB target. Results depend on the source file.
+• Recognize English or Hindi text from saved documents on your device.
+
+Save and find your documents
+• Save a PDF in Folio or export a copy to a folder you choose.
+• Organize files in folders and find them by title or recognized text.
+• Share a copy using your phone’s share menu.
+
+Core scanning and local PDF tools work without a Folio account. Automatic scanning may require Google Play services to download scanner components on supported devices.
+
+Release notes
+Scan and review multiple pages, adjust filters and image settings, sign and watermark PDFs, and save copies to your phone.
+
+Support email
+[PUBLIC SUPPORT EMAIL]

@@ -1,3 +1,4 @@
+import { FolioBrand, FolioIllustration } from "../../components/FolioBrand";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, View, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,11 +50,17 @@ export default function Documents() {
       style={{ flex: 1, backgroundColor: t.bg }}
     >
       <View style={[layout.content, { flex: 1, paddingBottom: 0, gap: 14 }]}>
-        <PageHeading
-          eyebrow="Your library"
-          title="Documents"
-          subtitle="Search your files, including recognized text."
-        />
+        <FolioBrand />
+        <View style={layout.row}>
+          <View style={{ flex: 1 }}>
+            <PageHeading
+              eyebrow="Your library"
+              title="Documents"
+              subtitle="Search your files, including recognized text."
+            />
+          </View>
+          <FolioIllustration kind="folder" />
+        </View>
         <Field
           value={query}
           onChangeText={setQuery}

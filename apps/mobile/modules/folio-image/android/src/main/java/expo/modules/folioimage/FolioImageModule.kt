@@ -80,7 +80,12 @@ class FolioImageModule : Module() {
    require(path.canonicalPath.startsWith(context.filesDir.canonicalPath + "/") || path.canonicalPath.startsWith(context.cacheDir.canonicalPath + "/")) { "Only app-local files may be processed" }
    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
    BitmapFactory.decodeFile(path.path, bounds)
-   val options = BitmapFactory.Options().apply { inSampleSize = max(1, ceil(max(bounds.outWidth,bounds.outHeight)/3200.0).toInt()) }
+   // BitmapFactory rounds arbitrary sampling factors down. Use powers of two
+   // so large camera images cannot exceed the processing memory budget.
+   val options = BitmapFactory.Options().apply {
+    inSampleSize = 1
+    while (max(bounds.outWidth,bounds.outHeight) / inSampleSize > 2400) inSampleSize *= 2
+   }
    val bitmap = BitmapFactory.decodeFile(path.path,options) ?: error("Cannot decode image")
    val src=Mat(); val out=Mat(); val gray=Mat(); val temp=Mat()
    try {
@@ -96,33 +101,61 @@ class FolioImageModule : Module() {
      val transform=Imgproc.getPerspectiveTransform(from,to)
      try { Imgproc.warpPerspective(src,out,transform,Size(w.toDouble(),h.toDouble()));out.copyTo(src) } finally {from.release();to.release();transform.release()}
     }
+    // Keep the cleanup neighborhood proportional to the page, including thumbnails.
+    val paperWindow = (min(src.cols(), src.rows()) / 28).coerceIn(5, 91) or 1
+    fun estimatePaper() {
+     val kernel = Imgproc.getStructuringElement(
+      Imgproc.MORPH_ELLIPSE, Size(paperWindow.toDouble(), paperWindow.toDouble())
+     )
+     try {
+      Imgproc.morphologyEx(gray, temp, Imgproc.MORPH_CLOSE, kernel)
+      Imgproc.GaussianBlur(temp, temp, Size(0.0, 0.0), paperWindow / 6.0)
+     } finally { kernel.release() }
+    }
     when(filter) {
      "clean" -> {
       // Estimate paper illumination in luminance, then apply the same gain to
       // every color channel so colored ink keeps its hue.
       Imgproc.cvtColor(src,gray,Imgproc.COLOR_RGBA2GRAY)
-      val kernel=Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE,Size(31.0,31.0))
-      try { Imgproc.morphologyEx(gray,temp,Imgproc.MORPH_CLOSE,kernel);Imgproc.GaussianBlur(temp,temp,Size(0.0,0.0),21.0) } finally {kernel.release()}
-      val rgba=ByteArray((src.total()*4).toInt());val background=ByteArray(temp.total().toInt())
-      src.get(0,0,rgba);temp.get(0,0,background)
-      whitenPaper(rgba,background)
-      src.copyTo(out);out.put(0,0,rgba)
+      estimatePaper()
+      // Process one row at a time instead of duplicating the whole image
+      // into Java byte arrays while OpenCV also owns multiple full-size Mats.
+      val rgba=ByteArray(src.cols()*4);val background=ByteArray(src.cols())
+      src.copyTo(out)
+      for (row in 0 until src.rows()) {
+       src.get(row,0,rgba);temp.get(row,0,background)
+       whitenPaper(rgba,background);out.put(row,0,rgba)
+      }
      }
      "soft" -> { Imgproc.GaussianBlur(src,out,Size(3.0,3.0),0.5) }
      "sharpen" -> { Imgproc.GaussianBlur(src,temp,Size(0.0,0.0),1.2);Core.addWeighted(src,1.7,temp,-0.7,0.0,out) }
 
-     "grayscale","bw" -> { Imgproc.cvtColor(src,gray,Imgproc.COLOR_RGBA2GRAY); if(filter=="bw")Imgproc.adaptiveThreshold(gray,gray,255.0,Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,Imgproc.THRESH_BINARY,31,12.0);Imgproc.cvtColor(gray,out,Imgproc.COLOR_GRAY2RGBA) }
+     "bw" -> {
+      Imgproc.cvtColor(src, gray, Imgproc.COLOR_RGBA2GRAY)
+      estimatePaper()
+      // Normalize the page lighting before thresholding local text contrast.
+      Core.max(temp, Scalar(48.0), temp)
+      Core.divide(gray, temp, gray, 255.0)
+      Imgproc.adaptiveThreshold(gray, gray, 255.0, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+       Imgproc.THRESH_BINARY, paperWindow, 10.0)
+      Imgproc.cvtColor(gray, out, Imgproc.COLOR_GRAY2RGBA)
+     }
+     "grayscale" -> {
+      Imgproc.cvtColor(src, gray, Imgproc.COLOR_RGBA2GRAY)
+      Imgproc.cvtColor(gray, out, Imgproc.COLOR_GRAY2RGBA)
+     }
      "enhanced" -> { Imgproc.GaussianBlur(src,temp,Size(0.0,0.0),15.0);Core.divide(src,temp,out,255.0);Imgproc.GaussianBlur(out,temp,Size(0.0,0.0),1.0);Core.addWeighted(out,1.6,temp,-0.6,0.0,out) }
      "color" -> { src.convertTo(out,-1,1.2,5.0) }
      else -> src.copyTo(out)
     }
     out.convertTo(out,-1,contrast,brightness*255.0)
     val output=Bitmap.createBitmap(out.cols(),out.rows(),Bitmap.Config.ARGB_8888)
-    Utils.matToBitmap(out,output)
-    val file=File(context.cacheDir,"folio-${UUID.randomUUID()}.jpg")
-    file.outputStream().use { require(output.compress(Bitmap.CompressFormat.JPEG,95,it)) }
-    val result=mapOf("uri" to Uri.fromFile(file).toString(),"width" to output.width,"height" to output.height)
-    output.recycle();result
+    try {
+     Utils.matToBitmap(out,output)
+     val file=File(context.cacheDir,"folio-${UUID.randomUUID()}.jpg")
+     file.outputStream().use { require(output.compress(Bitmap.CompressFormat.JPEG,95,it)) }
+     mapOf("uri" to Uri.fromFile(file).toString(),"width" to output.width,"height" to output.height)
+    } finally { output.recycle() }
    } finally {src.release();out.release();gray.release();temp.release();if(!bitmap.isRecycled)bitmap.recycle()}
   }
  }

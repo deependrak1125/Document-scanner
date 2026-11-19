@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { isExpoGoRuntime } from "../native/runtime";
 import * as LocalAuthentication from "expo-local-authentication";
 import { useSettings } from "../store";
 import { useTheme } from "../theme";
@@ -20,8 +21,44 @@ import { setting, setSetting } from "../database";
 export default function Root() {
   return (
     <SafeAreaProvider>
-      <AppRoot />
+      {isExpoGoRuntime() ? <ExpoGoNotice /> : <AppRoot />}
     </SafeAreaProvider>
+  );
+}
+function ExpoGoNotice() {
+  const t = useTheme();
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <StatusBar style={t.dark ? "light" : "dark"} />
+      <View
+        style={{
+          flex: 1,
+          padding: 28,
+          justifyContent: "center",
+          gap: 20,
+          maxWidth: 540,
+          width: "100%",
+          alignSelf: "center",
+        }}
+      >
+        <IconBadge icon="document-text-outline" large />
+        <Label size={34}>Open Folio to scan and edit</Label>
+        <Label muted>
+          This QR code opened Expo Go. Folio’s PDF preview, filters, scanner,
+          OCR and translation need the Folio Android app installed on this
+          device.
+        </Label>
+        <SectionHeading
+          title="On your Mac"
+          icon="terminal-outline"
+          subtitle="Run npm run android from the project folder, then select your phone"
+        />
+        <Label muted size={13}>
+          After installation, open the Folio icon. Your saved files stay in the
+          app where you created them.
+        </Label>
+      </View>
+    </SafeAreaView>
   );
 }
 function AppRoot() {
@@ -128,8 +165,18 @@ function AppRoot() {
         <Stack.Screen name="office" options={{ title: "Office to PDF" }} />
         <Stack.Screen name="forms" options={{ title: "PDF forms" }} />
         <Stack.Screen name="compare" options={{ title: "Compare PDFs" }} />
+        <Stack.Screen name="sign" options={{ title: "Sign PDF" }} />
         <Stack.Screen name="merge" options={{ title: "Merge PDFs" }} />
-        <Stack.Screen name="camera" options={{ title: "Manual scanner" }} />
+        <Stack.Screen
+          name="scan-session"
+          options={{
+            title: "Scan document",
+            headerBackVisible: false,
+            gestureEnabled: false,
+            animation: "none",
+          }}
+        />
+        <Stack.Screen name="camera" options={{ title: "Folio camera" }} />
         <Stack.Screen name="editor" options={{ title: "Review your scan" }} />
         <Stack.Screen name="document/[id]" options={{ title: "Document" }} />
         <Stack.Screen

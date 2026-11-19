@@ -49,7 +49,7 @@ export function SignaturePad({
               height: 170,
             }}
           >
-            <Svg width="100%" height="100%">
+            <Svg pointerEvents="none" width="100%" height="100%">
               {paths.map((p, i) => (
                 <Path
                   key={i}

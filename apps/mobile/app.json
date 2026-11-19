@@ -1,6 +1,7 @@
 {
   "expo": {
-    "name": "Folio",
+    "name": "Folio: Document Scanner & Pdf Editor",
+    "icon": "./assets/icon.png",
     "slug": "folio-scanner",
     "scheme": "folio",
     "version": "0.1.0",
@@ -15,7 +16,7 @@
       }
     },
     "android": {
-      "package": "app.folio.scanner",
+      "package": "com.foliodocument.app",
       "permissions": ["CAMERA"],
       "allowBackup": false
     },
@@ -37,6 +38,7 @@
           "ocrUseBundled": true
         }
       ],
+      "./plugins/withMlkitOcrFix.cjs",
       [
         "expo-image-picker",
         {

@@ -10,7 +10,7 @@ import {
   PageHeading,
   Notice,
 } from "../../components/experience";
-import { capture, importImages } from "../../features/scanner";
+import { importImages } from "../../features/scanner";
 import { useDraft } from "../../store";
 import { useTheme } from "../../theme";
 import { useState } from "react";
@@ -20,13 +20,10 @@ export default function Scan() {
     draft = useDraft((s) => s.pages);
   async function start() {
     if (!(await confirmReplaceDraft())) return;
-    const pages = await capture(mode === "id");
-    if (pages.length) {
-      useDraft.getState().clear();
-      useDraft.getState().setIdMode(mode === "id");
-      useDraft.getState().add(pages);
-      router.push("/editor");
-    }
+    router.navigate({
+      pathname: "/scan-session",
+      params: { mode, fresh: "1", fromOptions: "1" },
+    });
   }
   return (
     <SafeAreaView
@@ -129,7 +126,7 @@ export default function Scan() {
             if (!(await confirmReplaceDraft())) return;
             useDraft.getState().clear();
             useDraft.getState().setIdMode(mode === "id");
-            router.push("/camera");
+            router.push({ pathname: "/camera", params: { mode: "manual" } });
           }}
         />
         <ActionCard

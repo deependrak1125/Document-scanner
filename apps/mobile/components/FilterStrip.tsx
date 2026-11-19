@@ -27,21 +27,29 @@ const presets: [Filter, string][] = [
 export function FilterStrip({
   page,
   disabled,
+  expanded = true,
+  generatePreviews = true,
   onSelect,
 }: {
   page: ScanPage;
   disabled: boolean;
+  expanded?: boolean;
+  generatePreviews?: boolean;
   onSelect: (filter: Filter) => Promise<void>;
 }) {
   const t = useTheme();
   const [previews, setPreviews] = useState<Partial<Record<Filter, string>>>({});
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState("");
   const base = page.editBaseUri ?? page.uri;
   useEffect(() => {
+    if (!generatePreviews) {
+      setPreviews({ original: base });
+      return;
+    }
     let active = true;
     const files: string[] = [];
-    setPreviews({});
-    setFailed(false);
+    setPreviews({ original: base });
+    setFailure("");
     void (async () => {
       const small = await ImageManipulator.manipulateAsync(
         base,
@@ -51,21 +59,33 @@ export function FilterStrip({
       files.push(small.uri);
       for (const [filter] of presets) {
         if (!active) break;
-        const result =
-          filter === "original"
-            ? small
-            : await processImage(
-                { ...page, ...small, editBaseUri: small.uri },
-                filter,
-                0,
-                1,
-              );
-        if (result.uri !== small.uri) files.push(result.uri);
-        if (active) setPreviews((p) => ({ ...p, [filter]: result.uri }));
+        try {
+          const result =
+            filter === "original"
+              ? small
+              : await processImage(
+                  { ...page, ...small, editBaseUri: small.uri },
+                  filter,
+                  0,
+                  1,
+                );
+          if (result.uri !== small.uri) files.push(result.uri);
+          if (active) setPreviews((p) => ({ ...p, [filter]: result.uri }));
+        } catch {
+          if (active)
+            setFailure(
+              "Some preview thumbnails could not load. You can still try the filter on the page.",
+            );
+        }
       }
     })()
-      .catch(() => {
-        if (active) setFailed(true);
+      .catch((error) => {
+        if (active)
+          setFailure(
+            error instanceof Error
+              ? error.message
+              : "Filter previews could not be loaded.",
+          );
       })
       .finally(() => {
         if (!active)
@@ -81,70 +101,83 @@ export function FilterStrip({
       );
     };
     // Appearance adjustments do not change the unfiltered preview source.
-  }, [base]);
+  }, [base, generatePreviews]);
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 12 }}
-    >
-      {presets.map(([filter, title]) => (
-        <Pressable
-          key={filter}
-          accessibilityRole="button"
-          accessibilityLabel={`${title} filter`}
-          accessibilityState={{ selected: page.filter === filter, disabled }}
-          disabled={disabled}
-          onPress={() =>
-            void onSelect(filter).catch((e) =>
-              Alert.alert(
-                "Filter failed",
-                e instanceof Error ? e.message : "Try again.",
-              ),
+    <View style={{ gap: 8 }}>
+      {!!failure && (
+        <Label muted size={12}>
+          Filter previews unavailable: {failure}
+        </Label>
+      )}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 12 }}
+      >
+        {(expanded
+          ? presets
+          : presets.filter(
+              ([filter], index) =>
+                index < 4 || filter === "bw" || filter === page.filter,
             )
-          }
-          style={{ width: 84, gap: 7, opacity: disabled ? 0.55 : 1 }}
-        >
-          <View
-            style={{
-              height: 108,
-              backgroundColor: t.tint,
-              borderRadius: 14,
-              overflow: "hidden",
-              borderWidth: 2,
-              borderColor: page.filter === filter ? t.primary : t.line,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+        ).map(([filter, title]) => (
+          <Pressable
+            key={filter}
+            accessibilityRole="button"
+            accessibilityLabel={`${title} filter`}
+            accessibilityState={{ selected: page.filter === filter, disabled }}
+            disabled={disabled}
+            onPress={() =>
+              void onSelect(filter).catch((e) =>
+                Alert.alert(
+                  "Filter failed",
+                  e instanceof Error ? e.message : "Try again.",
+                ),
+              )
+            }
+            style={{ width: 84, gap: 7, opacity: disabled ? 0.55 : 1 }}
           >
-            {previews[filter] ? (
-              <Image
-                source={{ uri: previews[filter] }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
-              />
-            ) : failed ? (
-              <Ionicons name="image-outline" size={24} color={t.muted} />
-            ) : (
-              <ActivityIndicator color={t.primary} />
-            )}
-            {page.filter === filter && (
-              <View
-                style={{
-                  position: "absolute",
-                  right: 4,
-                  bottom: 4,
-                  backgroundColor: t.primary,
-                  borderRadius: 12,
-                }}
-              >
-                <Ionicons name="checkmark-circle" size={22} color={t.bg} />
-              </View>
-            )}
-          </View>
-          <Label size={12}>{title}</Label>
-        </Pressable>
-      ))}
-    </ScrollView>
+            <View
+              style={{
+                height: 108,
+                backgroundColor: t.tint,
+                borderRadius: 14,
+                overflow: "hidden",
+                borderWidth: 2,
+                borderColor: page.filter === filter ? t.primary : t.line,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {previews[filter] ? (
+                <Image
+                  source={{ uri: previews[filter] }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              ) : failure || !generatePreviews ? (
+                <Ionicons name="image-outline" size={24} color={t.muted} />
+              ) : (
+                <ActivityIndicator color={t.primary} />
+              )}
+              {page.filter === filter && (
+                <View
+                  style={{
+                    position: "absolute",
+                    right: 4,
+                    bottom: 4,
+                    backgroundColor: t.primary,
+                    borderRadius: 12,
+                  }}
+                >
+                  <Ionicons name="checkmark-circle" size={22} color={t.bg} />
+                </View>
+              )}
+            </View>
+            <Label size={12}>{title}</Label>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
   );
 }

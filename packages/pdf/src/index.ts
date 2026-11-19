@@ -114,6 +114,16 @@ export interface PdfEdit {
   order?: number[];
   rotation?: number;
   watermark?: string;
+  watermarks?: {
+    page: number;
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    size: number;
+    opacity: number;
+    rotation: number;
+  }[];
   pageNumbers?: boolean;
   signature?: {
     png: Uint8Array;
@@ -165,6 +175,30 @@ export async function editPdf(input: Uint8Array, edit: PdfEdit) {
         size: 9,
         font,
       });
+  }
+  for (const mark of edit.watermarks ?? []) {
+    const text = mark.text.trim();
+    if (!text) continue;
+    try {
+      font.encodeText(text);
+    } catch {
+      throw new Error(
+        "Use Latin letters, numbers, or standard punctuation in the watermark.",
+      );
+    }
+    const size = Math.min(
+      mark.size,
+      mark.width / font.widthOfTextAtSize(text, 1),
+    );
+    result.getPage(mark.page).drawText(text, {
+      x: mark.x,
+      y: mark.y,
+      size,
+      font,
+      opacity: mark.opacity,
+      rotate: degrees(mark.rotation),
+      color: rgb(0.08, 0.24, 0.48),
+    });
   }
   if (edit.signature) {
     const s = edit.signature;

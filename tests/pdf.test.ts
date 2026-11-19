@@ -133,3 +133,38 @@ it("exports long translated Hindi/English text with an embedded font and paginat
   expect(result.getPageCount()).toBeGreaterThan(1);
   expect(bytes.length).toBeGreaterThan(1000);
 });
+
+it("writes multiple positioned watermark stamps only to the requested page", async () => {
+  const pdf = await PDFDocument.load(
+    await editPdf(await fixture(2), {
+      watermarks: [20, 130].map((x) => ({
+        page: 1,
+        text: "PRIVATE",
+        x,
+        y: 100,
+        width: 120,
+        size: 16,
+        opacity: 0.35,
+        rotation: 0,
+      })),
+    }),
+  );
+  const contents = (index: number) =>
+    pdf
+      .getPage(index)
+      .node.normalizedEntries()
+      .Contents!.asArray()
+      .map((ref) => pdf.context.lookup(ref))
+      .filter(
+        (stream): stream is PDFRawStream => stream instanceof PDFRawStream,
+      )
+      .map((stream) =>
+        Buffer.from(decodePDFRawStream(stream).decode()).toString(),
+      )
+      .join("\n");
+  const encoded = Buffer.from("PRIVATE").toString("hex").toUpperCase();
+  expect(contents(0)).not.toContain(encoded);
+  expect(contents(1).split(encoded)).toHaveLength(3);
+  expect(contents(1)).toContain("20 100 Tm");
+  expect(contents(1)).toContain("130 100 Tm");
+});

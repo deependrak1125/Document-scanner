@@ -1,9 +1,16 @@
-import MlkitOcr from "rn-mlkit-ocr";
 import type { ScanPage } from "@folio/shared-types";
 export async function recognize(
   page: ScanPage,
   language: "latin" | "devanagari" = "latin",
 ): Promise<ScanPage> {
+  let MlkitOcr: typeof import("rn-mlkit-ocr").default;
+  try {
+    MlkitOcr = (await import("rn-mlkit-ocr")).default;
+  } catch {
+    throw new Error(
+      "Text recognition needs the Folio development build. Install the native Folio APK before running OCR.",
+    );
+  }
   const result = await MlkitOcr.recognizeText(page.uri, language);
   if (!result || typeof result.text !== "string")
     throw new Error(
