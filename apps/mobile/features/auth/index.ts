@@ -1,3 +1,4 @@
+import { folioServerEnabled } from "./serverMode";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { ApiClient, ApiError } from "@folio/api-client";
@@ -14,6 +15,10 @@ async function accept(tokens: Tokens) {
   useAuth.setState({ token: tokens.accessToken });
 }
 export async function signIn(email: string, password: string, name?: string) {
+  if (!folioServerEnabled)
+    throw new Error(
+      "Use Google Drive backup in Profile. Folio accounts are disabled in this build.",
+    );
   const result = await api.post<Tokens & { user: UserProfile }>(
     name ? "/auth/register" : "/auth/login",
     { email, password, ...(name ? { name } : {}) },
@@ -22,6 +27,11 @@ export async function signIn(email: string, password: string, name?: string) {
   useAuth.setState({ user: result.user });
 }
 export async function refresh() {
+  if (!folioServerEnabled)
+    throw new Error(
+      "Use Google Drive backup in Profile. Folio accounts are disabled in this build.",
+    );
+
   if (refreshing) return refreshing;
   refreshing = (async () => {
     const refreshToken = await SecureStore.getItemAsync("folio.refresh");
@@ -34,6 +44,11 @@ export async function refresh() {
   return refreshing;
 }
 export async function authorized<T>(fn: () => Promise<T>): Promise<T> {
+  if (!folioServerEnabled)
+    throw new Error(
+      "Use Google Drive backup in Profile. Folio accounts are disabled in this build.",
+    );
+
   if (!useAuth.getState().token) await refresh();
   try {
     return await fn();

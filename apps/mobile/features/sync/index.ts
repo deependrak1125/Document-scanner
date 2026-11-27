@@ -14,7 +14,10 @@ import {
 } from "../../database";
 import { useSettings } from "../../store";
 let running = false;
-export async function sync(onProgress: (message: string) => void = () => {}) {
+export async function sync(
+  onProgress: (message: string) => void = () => {},
+  restoreFromStart = false,
+) {
   if (running) throw new Error("Sync is already running.");
   if (!useSettings.getState().backup)
     throw new Error("Enable cloud backup first.");
@@ -25,21 +28,25 @@ export async function sync(onProgress: (message: string) => void = () => {}) {
       throw new Error("You are offline. Your documents remain on this device.");
     await authorized(() => api.request("/auth/me"));
     const userId = useAuth.getState().user!.id;
+    const checkAccount = () => {
+      if (
+        useAuth.getState().user?.id !== userId ||
+        !useSettings.getState().backup
+      )
+        throw new Error(
+          "Sync stopped because account or backup settings changed.",
+        );
+    };
     const withAccount = <T>(operation: () => Promise<T>) =>
       authorized(() => {
-        if (
-          useAuth.getState().user?.id !== userId ||
-          !useSettings.getState().backup
-        )
-          throw new Error(
-            "Sync stopped because account or backup settings changed.",
-          );
+        checkAccount();
         return operation();
       });
     const d = await db();
     const queue = await d.getAllAsync<{ documentId: string; revision: number }>(
       "SELECT documentId,revision FROM outbox",
     );
+    let backupFailures = 0;
     for (const [index, entry] of queue.entries()) {
       const local = await getDocument(entry.documentId);
       if (!local || local.sensitive) continue;
@@ -135,11 +142,14 @@ export async function sync(onProgress: (message: string) => void = () => {}) {
           error instanceof Error ? error.message : "Sync failed",
           local.id,
         );
-        throw error;
+        backupFailures++;
       }
     }
-    let cursor = await setting<string | null>(`cursor:${userId}`, null),
+    let cursor = restoreFromStart
+        ? null
+        : await setting<string | null>(`cursor:${userId}`, null),
       more = true;
+    let restored = 0;
     while (more) {
       const batch = await withAccount(() =>
         api.request<{
@@ -152,7 +162,18 @@ export async function sync(onProgress: (message: string) => void = () => {}) {
       );
       for (const remote of batch.items) {
         const local = await getDocument(remote.id);
-        if (local?.remoteRevision === remote.revision) continue;
+        checkAccount();
+        if (local) {
+          const owner = await setting<string | null>(`owner:${local.id}`, null);
+          if (local.sensitive || (owner && owner !== userId)) continue;
+          if (
+            local.remoteRevision === remote.revision &&
+            (remote.deletedAt ||
+              !restoreFromStart ||
+              (await FS.getInfoAsync(local.uri)).exists)
+          )
+            continue;
+        }
         if (local && local.syncState !== "synced") {
           await markSync(
             local.id,
@@ -176,20 +197,25 @@ export async function sync(onProgress: (message: string) => void = () => {}) {
           continue;
         }
         if (!remote.fileSize) continue;
-        onProgress("Restoring cloud documents");
+        onProgress(`Restoring cloud documents · ${restored} restored`);
         const { url } = await withAccount(() =>
           api.request<{ url: string }>(`/documents/${remote.id}/download`),
         );
         const dir = `${root}${remote.id}/`;
         await FS.makeDirectoryAsync(dir, { intermediates: true });
         const temp = `${dir}restore.tmp`;
-        const result = await FS.downloadAsync(url, temp);
-        if (result.status !== 200) throw new Error("Cloud restore failed.");
-        const info = await FS.getInfoAsync(temp);
-        if (!info.exists || info.size !== remote.fileSize)
-          throw new Error("Downloaded file is incomplete.");
         const uri = `${dir}cloud-${remote.revision}.pdf`;
-        await FS.moveAsync({ from: temp, to: uri });
+        try {
+          const result = await FS.downloadAsync(url, temp);
+          if (result.status !== 200) throw new Error("Cloud restore failed.");
+          const info = await FS.getInfoAsync(temp);
+          if (!info.exists || info.size !== remote.fileSize)
+            throw new Error("Downloaded file is incomplete.");
+          checkAccount();
+          await FS.moveAsync({ from: temp, to: uri });
+        } finally {
+          await FS.deleteAsync(temp, { idempotent: true }).catch(() => {});
+        }
         const now = new Date().toISOString();
         const doc: LocalDocument = {
           ...remote,
@@ -207,14 +233,23 @@ export async function sync(onProgress: (message: string) => void = () => {}) {
           await markSync(latest.id, latest.remoteRevision, "conflict");
           continue;
         }
+        checkAccount();
         await persist(doc, false);
         await setSetting(`owner:${doc.id}`, userId);
+        restored++;
       }
       cursor = batch.cursor;
       more = batch.hasMore;
+      checkAccount();
       await setSetting(`cursor:${userId}`, cursor);
     }
-    onProgress("Backup is up to date");
+    onProgress(
+      backupFailures
+        ? `${backupFailures} uploads need retry · ${restored} PDFs restored`
+        : restored
+          ? `${restored} PDFs restored · Backup is up to date`
+          : "Backup is up to date",
+    );
   } finally {
     running = false;
   }

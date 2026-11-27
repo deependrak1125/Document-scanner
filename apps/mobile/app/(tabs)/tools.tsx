@@ -1,3 +1,10 @@
+import { folioServerEnabled } from "../../features/auth/serverMode";
+import {
+  ExtraPdfTools,
+  type ExtraPdfTool,
+} from "../../components/ExtraPdfTools";
+import { PdfWorkspaceCatalog } from "../../components/PdfWorkspaceCatalog";
+import { FillGradient } from "../../components/HomeArtwork";
 import { WatermarkEditor } from "../../components/WatermarkEditor";
 import { PdfFilePreview } from "../../components/PdfFilePreview";
 import { useDraft } from "../../store";
@@ -24,14 +31,12 @@ import {
 import { api, authorized, useAuth } from "../../features/auth";
 import { readBytes, savePdf } from "../../database";
 import { useTheme } from "../../theme";
-import {
-  SectionHeading,
-  PageHeading,
-  Chip,
-  Notice,
-  ActionCard,
-} from "../../components/experience";
+import { PageHeading, Chip, Notice } from "../../components/experience";
 export default function Tools() {
+  const [extraTool, setExtraTool] = useState<{
+    tool: ExtraPdfTool;
+    file?: { uri: string; name: string };
+  } | null>(null);
   const [compressFile, setCompressFile] = useState<{
     name: string;
     uri: string;
@@ -47,8 +52,6 @@ export default function Tools() {
     [password, setPassword] = useState(""),
     [consent, setConsent] = useState(false),
     [catalog, setCatalog] = useState(true),
-    [toolQuery, setToolQuery] = useState(""),
-    [category, setCategory] = useState("All"),
     [progress, setProgress] = useState(""),
     [deletingPages, setDeletingPages] = useState(false),
     [section, setSection] = useState<"pages" | "watermark" | "cloud">("pages");
@@ -96,7 +99,33 @@ export default function Tools() {
     setDeletingPages(remove);
     setCatalog(false);
   }
+  async function openExtraTool(tool: ExtraPdfTool) {
+    if (tool === "Text to PDF") {
+      setExtraTool({ tool });
+      return;
+    }
+    const [selected] = await selectPdfs();
+    if (selected) setExtraTool({ tool, file: selected });
+  }
   const tools = [
+    {
+      title: "Text to PDF",
+      description: "Create a PDF from typed or pasted text",
+      icon: "document-text-outline" as const,
+      onPress: () => openExtraTool("Text to PDF"),
+    },
+    {
+      title: "PDF to PNG",
+      description: "Save a selected page as a PNG image",
+      icon: "image-outline" as const,
+      onPress: () => openExtraTool("PDF to PNG"),
+    },
+    {
+      title: "Edit PDF metadata",
+      description: "Change the PDF title, author, or subject",
+      icon: "information-circle-outline" as const,
+      onPress: () => openExtraTool("Edit PDF metadata"),
+    },
     {
       title: "Office to PDF",
       description: "DOCX, XLSX and PPTX · server conversion",
@@ -268,36 +297,6 @@ export default function Tools() {
       onPress: () => router.push("/scan"),
     },
   ];
-  const categories: Record<string, string[]> = {
-    Organize: [
-      "Merge PDF",
-      "Split / extract pages",
-      "Remove pages",
-      "Organize pages",
-    ],
-    Convert: [
-      "Office to PDF",
-      "JPG to PDF",
-      "PDF to JPG",
-      "Scan to PDF",
-      "PDF to Markdown",
-    ],
-    Enhance: ["Compress PDF", "PDF filters", "Crop PDF"],
-    Edit: [
-      "Fill PDF forms",
-      "Compare PDFs",
-      "Rotate PDF",
-      "Page numbers",
-      "Watermark PDF",
-      "Sign / annotate PDF",
-    ],
-    Text: ["OCR / searchable PDF", "Translate document", "Extract text"],
-    Security: ["Protect / unlock PDF"],
-  };
-  const matches = (tool: (typeof tools)[number]) =>
-    `${tool.title} ${tool.description}`
-      .toLowerCase()
-      .includes((shortcut ?? toolQuery).toLowerCase());
   async function edit(options: Parameters<typeof editFile>[2]) {
     if (!file) throw new Error("Choose a PDF first.");
     const doc = await editFile(
@@ -357,6 +356,18 @@ export default function Tools() {
       edges={["top", "left", "right"]}
       style={{ flex: 1, backgroundColor: t.bg }}
     >
+      {catalog && !t.dark && <FillGradient colors={["#eaf2ff", "#f6f8fc"]} />}
+      {extraTool && (
+        <ExtraPdfTools
+          tool={extraTool.tool}
+          file={extraTool.file}
+          onClose={() => setExtraTool(null)}
+          onSaved={(id) => {
+            setExtraTool(null);
+            open(id);
+          }}
+        />
+      )}
       <Modal
         visible={!!compressFile}
         transparent
@@ -434,92 +445,19 @@ export default function Tools() {
       <ScrollView
         scrollEnabled={!draggingStamp}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={layout.content}
+        contentContainerStyle={
+          catalog
+            ? [layout.content, { paddingHorizontal: 15, paddingTop: 12 }]
+            : layout.content
+        }
       >
         {catalog ? (
-          <>
-            <PageHeading
-              eyebrow="All PDF tools"
-              title="PDF workspace"
-              subtitle="Choose a tool. Pick your file. Save a new copy."
-            />
-            <Field
-              value={shortcut ?? toolQuery}
-              onChangeText={(value) => {
-                router.setParams({ tool: undefined });
-                setToolQuery(value);
-              }}
-              placeholder="Search tools…"
-            />
-            {!!progress && <Notice message={progress} />}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}
-            >
-              {["All", ...Object.keys(categories)].map((name) => (
-                <Chip
-                  key={name}
-                  title={name}
-                  selected={(shortcut ? "All" : category) === name}
-                  onPress={() => {
-                    router.setParams({ tool: undefined });
-                    setCategory(name);
-                  }}
-                />
-              ))}
-            </ScrollView>
-            {Object.entries(categories)
-              .filter(
-                ([name]) => shortcut || category === "All" || category === name,
-              )
-              .map(([name, titles]) => {
-                const items = tools.filter(
-                  (tool) => titles.includes(tool.title) && matches(tool),
-                );
-                return items.length ? (
-                  <View key={name} style={{ gap: 12 }}>
-                    <SectionHeading
-                      title={name}
-                      icon={
-                        name === "Organize"
-                          ? "layers-outline"
-                          : name === "Convert"
-                            ? "swap-horizontal-outline"
-                            : name === "Enhance"
-                              ? "sparkles-outline"
-                              : name === "Edit"
-                                ? "create-outline"
-                                : name === "Security"
-                                  ? "shield-checkmark-outline"
-                                  : "text-outline"
-                      }
-                    />
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        justifyContent: "space-between",
-                        gap: 12,
-                      }}
-                    >
-                      {items.map((tool) => (
-                        <ActionCard key={tool.title} {...tool} tile />
-                      ))}
-                    </View>
-                  </View>
-                ) : null;
-              })}
-            {!tools.some(
-              (tool) =>
-                matches(tool) &&
-                (shortcut ||
-                  category === "All" ||
-                  categories[category]?.includes(tool.title)),
-            ) && (
-              <Notice message="No matching tools. Try PDF, translate, crop or merge." />
-            )}
-          </>
+          <PdfWorkspaceCatalog
+            tools={tools}
+            shortcut={shortcut}
+            clearShortcut={() => router.setParams({ tool: undefined })}
+            progress={progress}
+          />
         ) : (
           <>
             <Button
@@ -564,12 +502,14 @@ export default function Tools() {
                 selected={section === "watermark"}
                 onPress={() => setSection("watermark")}
               />
-              <Chip
-                title="Cloud tools"
-                icon="cloud-outline"
-                selected={section === "cloud"}
-                onPress={() => setSection("cloud")}
-              />
+              {folioServerEnabled && (
+                <Chip
+                  title="Cloud tools"
+                  icon="cloud-outline"
+                  selected={section === "cloud"}
+                  onPress={() => setSection("cloud")}
+                />
+              )}
             </ScrollView>
             {!file && (
               <Notice message="Choose a PDF above to unlock the editing tools." />

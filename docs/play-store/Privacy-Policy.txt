@@ -16,6 +16,9 @@ When account services are available and you create an account, Folio’s server 
 
 If you sign in and enable cloud backup, Folio uploads eligible final PDFs and basic document metadata to the configured server and storage provider. Scans created in private ID mode are excluded from automatic backup. Turning backup off stops future automatic uploads. It does not delete previously backed-up files. Cloud PDF tools may upload an entire selected file for the requested task after you consent. Cloud processing and backup require a working connection to Folio’s services.
 
+Optional Google Drive backup
+On Android builds where Drive backup is configured, you can connect a Google account separately from your Folio account. Folio stores the connected account identifier and email on your device. Google handles sign-in and authorization; Folio does not receive your Google password. When enabled, Folio sends eligible PDFs, their filenames and integrity checksums to the Folio/Documents folder in your Google Drive. These copies use your Google storage quota. Private ID scans are excluded. Disconnecting stops new transfers. You can delete visible backups directly in Google Drive. Legacy hidden backups can be removed through Drive’s connected-app controls.
+
 Service providers and security
 Folio uses hosting and storage providers to operate cloud services when enabled. Google provides Android scanner components and, where enabled, Play purchase verification. [CONFIRM AND LIST OTHER PROVIDERS ACTUALLY USED IN PRODUCTION.] Local files rely on Android’s app storage protections. The server stores password hashes. The cloud backup implementation uses access checks, expiring download links and server-side storage encryption. Cloud backup is not end-to-end encrypted.
 

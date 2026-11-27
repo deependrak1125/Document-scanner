@@ -1,0 +1,252 @@
+[
+  {
+    "name": "@expo-google-fonts/noto-sans-devanagari",
+    "version": "0.4.2",
+    "license": "MIT AND OFL-1.1"
+  },
+  {
+    "name": "@expo/vector-icons",
+    "version": "15.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "@hookform/resolvers",
+    "version": "5.9.2",
+    "license": "MIT"
+  },
+  {
+    "name": "@pdf-lib/fontkit",
+    "version": "1.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "@react-native-google-signin/google-signin",
+    "version": "17.0.0",
+    "license": "MIT"
+  },
+  {
+    "name": "base64-js",
+    "version": "1.5.1",
+    "license": "MIT"
+  },
+  {
+    "name": "expo",
+    "version": "58.0.22",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-asset",
+    "version": "58.0.19",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-build-properties",
+    "version": "58.0.12",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-clipboard",
+    "version": "58.0.4",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-constants",
+    "version": "58.0.14",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-crypto",
+    "version": "58.0.7",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-dev-client",
+    "version": "58.0.18",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-document-picker",
+    "version": "58.0.4",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-file-system",
+    "version": "58.0.13",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-font",
+    "version": "58.0.11",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-image-manipulator",
+    "version": "58.0.16",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-image-picker",
+    "version": "58.0.10",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-linking",
+    "version": "58.0.15",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-local-authentication",
+    "version": "58.0.2",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-modules-core",
+    "version": "58.0.29",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-network",
+    "version": "58.0.4",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-print",
+    "version": "58.0.8",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-router",
+    "version": "58.0.29",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-secure-store",
+    "version": "58.0.2",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-sharing",
+    "version": "58.0.21",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-sqlite",
+    "version": "58.0.15",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-status-bar",
+    "version": "58.0.4",
+    "license": "MIT"
+  },
+  {
+    "name": "expo-system-ui",
+    "version": "58.0.7",
+    "license": "MIT"
+  },
+  {
+    "name": "pdf-lib",
+    "version": "1.17.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react",
+    "version": "19.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-hook-form",
+    "version": "7.91.0",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native",
+    "version": "0.88.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-blob-util",
+    "version": "0.24.12",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-document-scanner-plugin",
+    "version": "2.0.4",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-gesture-handler",
+    "version": "3.3.0",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-iap",
+    "version": "17.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-nitro-image",
+    "version": "0.15.2",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-nitro-modules",
+    "version": "0.37.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-pdf",
+    "version": "7.0.5",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-reanimated",
+    "version": "4.7.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-safe-area-context",
+    "version": "5.10.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-screens",
+    "version": "4.30.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-svg",
+    "version": "15.16.0",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-view-shot",
+    "version": "6.1.1",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-vision-camera",
+    "version": "5.2.4",
+    "license": "MIT"
+  },
+  {
+    "name": "react-native-worklets",
+    "version": "0.13.0",
+    "license": "MIT"
+  },
+  {
+    "name": "rn-mlkit-ocr",
+    "version": "0.3.1",
+    "license": "MIT"
+  },
+  {
+    "name": "zod",
+    "version": "4.6.7",
+    "license": "MIT"
+  },
+  {
+    "name": "zustand",
+    "version": "5.0.16",
+    "license": "MIT"
+  }
+]

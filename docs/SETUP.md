@@ -147,3 +147,26 @@ From the repository root run `npm start -- --clear` (for an already installed
 native development build), or `npm run android` to build/install native changes.
 Direct Expo CLI commands must run inside `apps/mobile`. Root Expo commands now
 stop with these instructions instead of selecting Expo's default `AppEntry.js`.
+
+### Google Drive backup on Android
+
+Production Folio runs without a Folio server by default. Users choose a Google
+account only to enable backup and restore. Enable Drive API for your Google
+Cloud project, configure consent for `drive.file` and `drive.appdata`, and
+register an Android OAuth client for `com.foliodocument.app` with the signing
+certificate SHA-1. Use the Play app-signing SHA-1 for Play-installed builds.
+Register the debug or upload certificate separately for those test builds.
+
+Set `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` to the public Android client ID in
+`apps/mobile/.env.production.local` for local releases, or in the EAS production
+environment for hosted builds. Google Play services authenticates the package
+and certificate and supplies Drive access tokens. There is no Web OAuth client,
+client secret, or token exchange server in this flow. Native Android builds are
+required. The iOS Drive connection is not configured by an Android OAuth client.
+
+In Profile → Google Drive backup, connect the same Google account on each phone.
+Folio checks on connect, app resume and periodically in the foreground. New
+backups are visible in My Drive → Folio → Documents. Previous hidden backups remain
+readable. Only final regular PDFs up to 30 MB are included. Folder assignments,
+OCR metadata and edit history do not travel. Folio local deletion does not delete
+Drive backup copies. Drive storage quotas apply.

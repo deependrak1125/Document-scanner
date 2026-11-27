@@ -1,3 +1,4 @@
+import * as Crypto from "expo-crypto";
 import * as FS from "expo-file-system/legacy";
 import { AdjustmentSlider } from "../components/AdjustmentSlider";
 import { exportPdf } from "../features/documents/export";
@@ -31,7 +32,7 @@ import {
 } from "../features/scanner";
 import { processImage, detectCorners } from "../native/image";
 import { imagesToPdf, type Paper } from "@folio/pdf";
-import { readBytes, savePdf } from "../database";
+import { readBytes, savePdf, scanFolderSettings } from "../database";
 import type { ScanPage } from "@folio/shared-types";
 export default function Editor() {
   return (
@@ -59,6 +60,7 @@ function EditorContent() {
     [processing, setProcessing] = useState(false),
     [progress, setProgress] = useState("");
   const editing = useRef(false);
+  const [cropAll, setCropAll] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const draggingAdjustment = useRef(false);
   const pendingAdjustment = useRef<
@@ -253,7 +255,8 @@ function EditorContent() {
         paper,
         idLayout: idMode ? (horizontal ? "horizontal" : "vertical") : undefined,
       });
-      const doc = await savePdf(title, bytes, pages, idMode);
+      const { folderId } = await scanFolderSettings();
+      const doc = await savePdf(title, bytes, pages, idMode, folderId);
       useDraft.getState().clear();
       router.replace({
         pathname: "/document/[id]",
@@ -322,23 +325,63 @@ function EditorContent() {
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 14, paddingTop: 8 }}>
         {crop ? (
-          <CropEditor
-            uri={page.uri}
-            width={page.width}
-            height={page.height}
-            onApply={async (corners) => {
-              await replace(() =>
-                processImage(
-                  page,
-                  page.filter,
-                  page.brightness ?? 0,
-                  page.contrast ?? 1,
-                  corners,
-                ),
-              );
-              setCrop(false);
-            }}
-          />
+          <View style={{ gap: 6 }}>
+            <CropEditor
+              uri={page.uri}
+              width={page.width}
+              height={page.height}
+              onApply={async (corners) => {
+                if (cropAll && pages.length > 1) {
+                  if (editing.current || pendingAdjustment.current)
+                    throw new Error("Wait for the current edit to finish.");
+                  editing.current = true;
+                  setProcessing(true);
+                  try {
+                    const edited: ScanPage[] = [];
+                    for (const [i, source] of pages.entries()) {
+                      setProgress(`Cropping page ${i + 1} of ${pages.length}…`);
+                      edited.push(
+                        await processImage(
+                          source,
+                          source.filter,
+                          source.brightness ?? 0,
+                          source.contrast ?? 1,
+                          corners,
+                        ),
+                      );
+                    }
+                    useDraft.getState().set(edited);
+                    setCrop(false);
+                  } finally {
+                    editing.current = false;
+                    setProcessing(false);
+                    setProgress("");
+                  }
+                  return;
+                }
+                await replace(() =>
+                  processImage(
+                    page,
+                    page.filter,
+                    page.brightness ?? 0,
+                    page.contrast ?? 1,
+                    corners,
+                  ),
+                );
+                setCrop(false);
+              }}
+            />
+            {pages.length > 1 && (
+              <Button
+                title={
+                  cropAll ? "Crop target: All pages" : "Crop target: This page"
+                }
+                secondary
+                disabled={blocked}
+                onPress={() => setCropAll(!cropAll)}
+              />
+            )}
+          </View>
         ) : (
           <View>
             <Pressable
@@ -756,6 +799,19 @@ function EditorContent() {
           />
           <View style={layout.wrap}>
             <Button
+              title="Duplicate selected page"
+              icon="copy-outline"
+              secondary
+              disabled={blocked || idMode || pages.length >= 100}
+              onPress={() => {
+                const draft = useDraft.getState();
+                const next = [...draft.pages];
+                next.splice(index + 1, 0, { ...page, id: Crypto.randomUUID() });
+                draft.set(next);
+                setIndex(index + 1);
+              }}
+            />
+            <Button
               title="Reverse page order"
               icon="swap-vertical-outline"
               secondary
@@ -789,7 +845,11 @@ function EditorContent() {
                       ? "Legal"
                       : paper === "Legal"
                         ? "Auto"
-                        : "A4",
+                        : paper === "Auto"
+                          ? "A3"
+                          : paper === "A3"
+                            ? "A5"
+                            : "A4",
                 )
               }
             />

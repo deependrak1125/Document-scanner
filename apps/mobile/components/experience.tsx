@@ -233,12 +233,16 @@ export function Disclosure({
   children,
   initiallyOpen = false,
   icon,
+  compact = false,
+  iconColors,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   initiallyOpen?: boolean;
   icon?: Icon;
+  compact?: boolean;
+  iconColors?: { foreground: string; background: string };
 }) {
   const t = useTheme(),
     [open, setOpen] = useState(initiallyOpen);
@@ -247,7 +251,7 @@ export function Disclosure({
       style={{
         borderWidth: 1,
         borderColor: t.line,
-        borderRadius: 22,
+        borderRadius: compact ? 16 : 22,
         backgroundColor: t.surface,
         overflow: "hidden",
       }}
@@ -257,15 +261,41 @@ export function Disclosure({
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
         style={{
-          padding: 18,
+          padding: compact ? 9 : 18,
           flexDirection: "row",
           alignItems: "center",
           gap: 12,
         }}
       >
-        {icon && <IconBadge icon={icon} />}
+        {icon &&
+          (iconColors ? (
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: t.dark ? t.tint : iconColors.background,
+              }}
+            >
+              <Ionicons
+                name={icon}
+                size={21}
+                color={t.dark ? t.primary : iconColors.foreground}
+              />
+            </View>
+          ) : (
+            <IconBadge icon={icon} />
+          ))}
         <View style={{ flex: 1, gap: 4 }}>
-          <Text style={{ color: t.text, fontSize: 17, fontWeight: "700" }}>
+          <Text
+            style={{
+              color: t.text,
+              fontSize: compact ? 15 : 17,
+              fontWeight: "700",
+            }}
+          >
             {title}
           </Text>
           {description && (
@@ -281,7 +311,15 @@ export function Disclosure({
         />
       </Pressable>
       {open && (
-        <View style={{ padding: 18, paddingTop: 0, gap: 14 }}>{children}</View>
+        <View
+          style={{
+            padding: compact ? 12 : 18,
+            paddingTop: compact ? 4 : 0,
+            gap: 14,
+          }}
+        >
+          {children}
+        </View>
       )}
     </View>
   );

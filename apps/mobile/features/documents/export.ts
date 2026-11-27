@@ -55,3 +55,41 @@ export async function exportPdf(doc: {
     );
   }
 }
+
+/** Export independent PDFs that can be copied to another phone or saved in a Drive folder. */
+export async function exportLibraryPdfs(onProgress: (message: string) => void) {
+  if (Platform.OS !== "android")
+    throw new Error("Use Share PDF to export documents on this device.");
+  const { listDocuments } = await import("../../database");
+  const docs = (await listDocuments()).filter((doc) => !doc.sensitive);
+  if (!docs.length)
+    throw new Error("There are no regular documents to back up.");
+  const permission =
+    await FS.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  if (!permission.granted) return null;
+  let exported = 0;
+  const failed: string[] = [];
+  for (const [index, doc] of docs.entries()) {
+    onProgress(`Exporting ${index + 1} / ${docs.length}`);
+    let destination: string | undefined;
+    try {
+      const bytes = await readBytes(doc.uri);
+      destination = await FS.StorageAccessFramework.createFileAsync(
+        permission.directoryUri,
+        pdfFilename(
+          `${doc.title.replace(/\.pdf$/i, "")} - ${doc.id.slice(0, 8)}`,
+        ),
+        "application/pdf",
+      );
+      await FS.writeAsStringAsync(destination, fromByteArray(bytes), {
+        encoding: FS.EncodingType.Base64,
+      });
+      exported++;
+    } catch {
+      if (destination)
+        await FS.deleteAsync(destination, { idempotent: true }).catch(() => {});
+      failed.push(doc.title);
+    }
+  }
+  return { exported, failed };
+}

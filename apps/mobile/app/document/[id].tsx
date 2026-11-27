@@ -506,7 +506,7 @@ function DocumentScreenContent() {
             doc.deletedAt ? "Restore document?" : "Move to trash?",
             doc.deletedAt
               ? "The document will reappear in your library."
-              : "You can restore it later from Trash.",
+              : "This moves the local copy to Trash. Google Drive backup copies are kept.",
             [
               { text: "Cancel", style: "cancel" },
               {

@@ -1,3 +1,4 @@
+import { folioServerEnabled } from "../features/auth/serverMode";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import * as Network from "expo-network";
@@ -12,7 +13,7 @@ export function useAutoSync() {
   const enabled = useSettings((s) => s.backup),
     user = useAuth((s) => s.user);
   useEffect(() => {
-    if (!enabled || !user) {
+    if (!folioServerEnabled || !enabled || !user) {
       useSyncStatus.setState({ message: "Cloud backup is off" });
       return;
     }

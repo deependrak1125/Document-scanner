@@ -4,7 +4,7 @@
     "icon": "./assets/icon.png",
     "slug": "folio-scanner",
     "scheme": "folio",
-    "version": "0.1.1",
+    "version": "0.1.4",
     "orientation": "default",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,7 +17,7 @@
     },
     "android": {
       "package": "com.foliodocument.app",
-      "versionCode": 2,
+      "versionCode": 5,
       "permissions": ["CAMERA"],
       "allowBackup": false
     },

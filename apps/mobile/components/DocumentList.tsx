@@ -10,10 +10,27 @@ import { Ionicons } from "@expo/vector-icons";
 import type { LocalDocument } from "@folio/shared-types";
 import { Label, Card, Button } from "./ui";
 import { useTheme } from "../theme";
+function recentDate(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const day = date.toDateString();
+  if (day === today.toDateString() || day === yesterday.toDateString()) {
+    return `${day === today.toDateString() ? "Today" : "Yesterday"}, ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`;
+  }
+  return date.toLocaleDateString();
+}
+
 export function DocumentList({
   documents,
   grid = false,
+  compact = false,
   scroll = true,
+  header,
+  grouped = false,
+  showEmpty = true,
+  inset = 0,
   emptyTitle = "Your first scan starts here",
   emptyMessage = "Scan a page or import a file. Your documents will appear here.",
   showScanAction = true,
@@ -23,7 +40,12 @@ export function DocumentList({
 }: {
   documents: LocalDocument[];
   grid?: boolean;
+  compact?: boolean;
   scroll?: boolean;
+  header?: React.ReactElement;
+  grouped?: boolean;
+  showEmpty?: boolean;
+  inset?: number;
   emptyTitle?: string;
   emptyMessage?: string;
   showScanAction?: boolean;
@@ -50,23 +72,30 @@ export function DocumentList({
         data={documents}
         numColumns={grid ? 2 : 1}
         keyExtractor={(d) => d.id}
-        contentContainerStyle={{ gap: 10, paddingBottom: 22 }}
+        ListHeaderComponent={header}
+        contentContainerStyle={{
+          gap: grouped ? 0 : 10,
+          paddingBottom: 22,
+          paddingHorizontal: inset,
+        }}
         columnWrapperStyle={grid ? { gap: 10 } : undefined}
         ListEmptyComponent={
-          <Card style={{ alignItems: "center", backgroundColor: t.surface }}>
-            <FolioIllustration />
-            <Label size={21}>{emptyTitle}</Label>
-            <Label muted>{emptyMessage}</Label>
-            {showScanAction && (
-              <Button
-                title="Scan a document"
-                icon="scan-outline"
-                onPress={launchScanner}
-              />
-            )}
-          </Card>
+          showEmpty ? (
+            <Card style={{ alignItems: "center", backgroundColor: t.surface }}>
+              <FolioIllustration />
+              <Label size={21}>{emptyTitle}</Label>
+              <Label muted>{emptyMessage}</Label>
+              {showScanAction && (
+                <Button
+                  title="Scan a document"
+                  icon="scan-outline"
+                  onPress={launchScanner}
+                />
+              )}
+            </Card>
+          ) : undefined
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <Pressable
             accessibilityLabel={`Open ${item.title}`}
             accessibilityRole="button"
@@ -84,8 +113,16 @@ export function DocumentList({
               maxWidth: grid ? "49%" : undefined,
               backgroundColor: t.surface,
               borderRadius: 18,
-              padding: 16,
+              ...(grouped && {
+                borderTopLeftRadius: 0,
+                borderTopRightRadius: 0,
+                borderBottomLeftRadius: index === documents.length - 1 ? 18 : 0,
+                borderBottomRightRadius:
+                  index === documents.length - 1 ? 18 : 0,
+              }),
+              padding: compact ? 10 : 16,
               borderWidth: 1,
+              borderTopWidth: grouped ? 0 : 1,
               borderColor: t.line,
               flexDirection: grid ? "column" : "row",
               gap: 14,
@@ -96,8 +133,8 @@ export function DocumentList({
               <Image
                 source={{ uri: item.pages[0].uri }}
                 style={{
-                  width: grid ? "100%" : 48,
-                  height: grid ? 140 : 62,
+                  width: grid ? "100%" : grouped ? 58 : 48,
+                  height: grid ? 140 : grouped ? 46 : compact ? 44 : 62,
                   borderRadius: 9,
                   backgroundColor: t.bg,
                 }}
@@ -106,8 +143,8 @@ export function DocumentList({
             ) : (
               <View
                 style={{
-                  height: grid ? 140 : 62,
-                  width: grid ? "100%" : 48,
+                  height: grid ? 140 : grouped ? 46 : compact ? 44 : 62,
+                  width: grid ? "100%" : grouped ? 58 : 48,
                   justifyContent: "center",
                   alignItems: "center",
                   backgroundColor: t.tint,
@@ -127,17 +164,24 @@ export function DocumentList({
                 {item.title}
               </Label>
               <Label muted size={12}>
-                {item.pageCount} pages · {(item.fileSize / 1024).toFixed(0)} KB
+                {compact
+                  ? item.fileSize >= 1048576
+                    ? `${(item.fileSize / 1048576).toFixed(1)} MB`
+                    : `${Math.ceil(item.fileSize / 1024)} KB`
+                  : `${item.pageCount} pages · ${(item.fileSize / 1024).toFixed(0)} KB`}
+                {compact ? ` · ${recentDate(item.updatedAt)}` : ""}
               </Label>
-              <Label muted size={11}>
-                {item.sensitive
-                  ? "Private · local only"
-                  : item.syncState === "synced"
-                    ? "Backed up"
-                    : item.syncState === "conflict"
-                      ? "Sync needs attention"
-                      : "On this device"}
-              </Label>
+              {!compact && (
+                <Label muted size={11}>
+                  {item.sensitive
+                    ? "Private · local only"
+                    : item.syncState === "synced"
+                      ? "Backed up"
+                      : item.syncState === "conflict"
+                        ? "Sync needs attention"
+                        : "On this device"}
+                </Label>
+              )}
             </View>
             <Pressable
               accessibilityRole="button"
@@ -239,7 +283,7 @@ export function DocumentList({
                   if (selected?.deletedAt) return change({ deletedAt: null });
                   Alert.alert(
                     "Move to trash?",
-                    "You can restore this document from the Trash tab in your library.",
+                    "This moves the local copy to Trash. Google Drive backup copies are kept.",
                     [
                       { text: "Cancel", style: "cancel" },
                       {

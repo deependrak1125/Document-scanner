@@ -1,3 +1,4 @@
+import { useDriveBackup } from "../features/drive";
 import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import type { LocalDocument } from "@folio/shared-types";
@@ -11,6 +12,7 @@ export function useLibrary(
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const generation = useRef(0);
+  const driveRevision = useDriveBackup((state) => state.libraryRevision);
   const reload = useCallback(async () => {
     const version = ++generation.current;
     setLoading(true);
@@ -33,7 +35,7 @@ export function useLibrary(
       return () => {
         generation.current++;
       };
-    }, [reload]),
+    }, [reload, driveRevision]),
   );
   return { documents, loading, error, reload };
 }

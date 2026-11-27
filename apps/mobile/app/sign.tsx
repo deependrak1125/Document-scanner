@@ -1,3 +1,5 @@
+import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -75,6 +77,50 @@ export default function SignPdf() {
       live = false;
     };
   }, [id, initialPage, attempt]);
+  async function keepSignature(uri: string) {
+    const target = `${FS.documentDirectory}folio-signature-${Crypto.randomUUID()}.png`;
+    await FS.copyAsync({ from: uri, to: target });
+    try {
+      await setSetting("signature", target);
+    } catch (error) {
+      await FS.deleteAsync(target, { idempotent: true }).catch(() => {});
+      throw error;
+    }
+    setSignature(target);
+    setPlacement(null);
+    setDrawing(false);
+  }
+
+  async function uploadSignature() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+    });
+    if (result.canceled) return;
+    const image = result.assets[0];
+    if (!image) return;
+    if ((image.fileSize ?? 0) > 15 * 1024 * 1024)
+      throw new Error("Choose a signature image under 15 MB.");
+    const resize =
+      Math.max(image.width, image.height) > 1200
+        ? [
+            {
+              resize:
+                image.width >= image.height
+                  ? { width: 1200 }
+                  : { height: 1200 },
+            },
+          ]
+        : [];
+    const png = await manipulateAsync(image.uri, resize, {
+      format: SaveFormat.PNG,
+    });
+    try {
+      await keepSignature(png.uri);
+    } finally {
+      if (png.uri !== image.uri)
+        await FS.deleteAsync(png.uri, { idempotent: true }).catch(() => {});
+    }
+  }
   async function save() {
     if (!doc || !signature || !placement || savingRef.current) return;
     savingRef.current = true;
@@ -171,8 +217,7 @@ export default function SignPdf() {
             </View>
             {!signature && (
               <Label muted size={13}>
-                Your PDF stays visible. Draw a signature, then drag it onto the
-                page.
+                Draw or upload a signature, then drag it onto the page.
               </Label>
             )}
             {!!error && <Label>{error}</Label>}
@@ -189,11 +234,20 @@ export default function SignPdf() {
             <View style={layout.row}>
               <View style={{ flex: 1 }}>
                 <Button
-                  title={signature ? "Change signature" : "Draw signature"}
+                  title="Draw signature"
                   icon="create-outline"
                   secondary={!!signature}
                   disabled={saving}
                   onPress={() => setDrawing(true)}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Upload image"
+                  icon="image-outline"
+                  secondary
+                  disabled={saving}
+                  onPress={uploadSignature}
                 />
               </View>
               {signature && (
@@ -236,16 +290,7 @@ export default function SignPdf() {
             onPress={() => setDrawing(false)}
           />
           <Label size={24}>Your signature</Label>
-          <SignaturePad
-            onSave={async (uri) => {
-              const target = `${FS.documentDirectory}folio-signature-${Crypto.randomUUID()}.png`;
-              await FS.copyAsync({ from: uri, to: target });
-              await setSetting("signature", target);
-              setSignature(target);
-              setPlacement(null);
-              setDrawing(false);
-            }}
-          />
+          <SignaturePad onSave={keepSignature} />
         </SafeAreaView>
       </Modal>
     </Screen>

@@ -1,3 +1,5 @@
+import { folioServerEnabled } from "../features/auth/serverMode";
+import { useAutomaticDriveBackup } from "../hooks/useAutomaticDriveBackup";
 import { IconBadge, SectionHeading } from "../components/experience";
 import { useAutoSync } from "../hooks/useAutoSync";
 import { refresh } from "../features/auth";
@@ -63,14 +65,16 @@ function ExpoGoNotice() {
 }
 function AppRoot() {
   useAutoSync();
+  useAutomaticDriveBackup();
   const t = useTheme(),
     settings = useSettings(),
     [locked, setLocked] = useState(true),
     [welcome, setWelcome] = useState(false);
   useEffect(() => {
-    void refresh().catch(() => {
-      /* Offline and guest sessions stay local. */
-    });
+    if (folioServerEnabled)
+      void refresh().catch(() => {
+        /* Offline and guest sessions stay local. */
+      });
     void settings.refresh().then(async () => {
       setLocked(await setting("lock", false));
       setWelcome(!(await setting("onboarded", false)));

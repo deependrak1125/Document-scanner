@@ -2,6 +2,7 @@ import * as SQLite from "expo-sqlite";
 import * as FS from "expo-file-system/legacy";
 import * as Crypto from "expo-crypto";
 import type { LocalDocument, ScanPage } from "@folio/shared-types";
+export const folioScanFolderName = "Folio";
 let database: Promise<SQLite.SQLiteDatabase> | undefined;
 export const root = `${FS.documentDirectory}folio/`;
 export async function db() {
@@ -14,6 +15,12 @@ export async function db() {
  CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS outbox(documentId TEXT PRIMARY KEY, revision INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, error TEXT);
  PRAGMA user_version=1;`);
+    await d.runAsync(
+      "INSERT OR IGNORE INTO folders(id,name) SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM folders WHERE name = ? COLLATE NOCASE)",
+      "folio-default-scan-folder",
+      folioScanFolderName,
+      folioScanFolderName,
+    );
     await FS.makeDirectoryAsync(root, { intermediates: true });
     return d;
   })());
@@ -107,6 +114,7 @@ export async function savePdf(
   bytes: Uint8Array,
   pages: ScanPage[] = [],
   sensitive = false,
+  folderId: string | null = null,
 ) {
   const { fromByteArray } = await import("base64-js");
   let stage = "prepare document storage";
@@ -144,7 +152,7 @@ export async function savePdf(
       pageCount: pdf.getPageCount(),
       fileSize: bytes.length,
       favorite: false,
-      folderId: null,
+      folderId,
       revision: 1,
       remoteRevision: 0,
       syncState: "local",
@@ -197,6 +205,18 @@ export async function folders() {
   return (await db()).getAllAsync<{ id: string; name: string }>(
     "SELECT * FROM folders ORDER BY name",
   );
+}
+export async function scanFolderSettings() {
+  const [items, preferred] = await Promise.all([
+    folders(),
+    setting<string | null>("defaultScanFolder", null),
+  ]);
+  const selected =
+    items.find((item) => item.id === preferred) ??
+    items.find(
+      (item) => item.name.toLowerCase() === folioScanFolderName.toLowerCase(),
+    );
+  return { items, folderId: selected?.id ?? null };
 }
 export async function createFolder(name: string) {
   if (!name.trim()) throw new Error("Enter a folder name.");

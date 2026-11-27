@@ -23,8 +23,10 @@ export interface ImagePage {
   width?: number;
   height?: number;
 }
-export type Paper = "A4" | "Letter" | "Legal" | "Auto";
+export type Paper = "A3" | "A5" | "A4" | "Letter" | "Legal" | "Auto";
 const sizes = {
+  A3: [841.89, 1190.55],
+  A5: [419.53, 595.28],
   A4: [595.28, 841.89],
   Letter: [612, 792],
   Legal: [612, 1008],

@@ -57,7 +57,15 @@ export default function TabLayout() {
             }
           >
             <Ionicons
-              name={icons[route.name as keyof typeof icons] ?? "ellipse"}
+              name={
+                route.name === "index" && focused
+                  ? "home"
+                  : route.name === "documents" && focused
+                    ? "folder"
+                    : route.name === "profile" && focused
+                      ? "person"
+                      : (icons[route.name as keyof typeof icons] ?? "ellipse")
+              }
               color={
                 route.name === "scan"
                   ? t.dark
@@ -85,7 +93,7 @@ export default function TabLayout() {
           },
         }}
       />
-      <Tabs.Screen name="tools" options={{ title: "PDF tools" }} />
+      <Tabs.Screen name="tools" options={{ title: "PDF Tools" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
